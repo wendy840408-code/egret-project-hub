@@ -638,6 +638,32 @@ input,select,textarea,button{font-family:var(--font)}
 
 @media(max-width:1100px){.ops-layout{grid-template-columns:1fr}.ops-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
+
+.phase-row.drag-over{background:var(--blue-dim)!important;border-color:var(--blue)!important}
+.phase-row [draggable="true"]:active{cursor:grabbing}
+
+
+/* ── v10: PHASE MINI GANTT ── */
+.phase-mini-wrap{border:1px solid var(--border);border-radius:14px;overflow:hidden;background:var(--bg2);margin-bottom:10px}
+.phase-mini-head{display:grid;grid-template-columns:180px 1fr;background:var(--bg3);border-bottom:1px solid var(--border)}
+.phase-mini-project{padding:10px 12px;font-size:10px;color:var(--text4);font-family:var(--mono);letter-spacing:.8px;text-transform:uppercase;border-right:1px solid var(--border)}
+.phase-mini-months{position:relative;display:flex;min-height:42px}
+.phase-mini-month{flex:1;min-width:60px;padding:10px 6px;border-right:1px solid var(--border);font-size:11px;color:var(--text3);font-family:var(--mono);text-align:center}
+.phase-mini-body{display:grid;grid-template-columns:180px 1fr}
+.phase-mini-info{padding:12px;border-right:1px solid var(--border);background:var(--bg2)}
+.phase-mini-name{font-size:15px;font-weight:700;color:var(--text)}
+.phase-mini-sub{font-size:11px;color:var(--text3);margin-top:4px;line-height:1.6}
+.phase-mini-track{position:relative;min-height:66px;background:linear-gradient(90deg,var(--bg2) 0%,var(--bg2) 100%)}
+.phase-mini-grid{position:absolute;inset:0;display:flex;pointer-events:none}
+.phase-mini-grid>span{flex:1;border-right:1px solid var(--border)}
+.phase-mini-grid>span:last-child{border-right:none}
+.phase-mini-bar{position:absolute;height:28px;border-radius:8px;display:flex;align-items:center;padding:0 10px;font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;box-shadow:0 2px 8px rgba(15,23,42,.06);border:1px solid transparent}
+.phase-mini-bar.current{box-shadow:0 0 0 2px rgba(59,130,246,.12),0 4px 12px rgba(59,130,246,.12)}
+.phase-mini-today{position:absolute;top:0;bottom:0;width:2px;background:var(--blue);opacity:.75;z-index:2}
+.phase-mini-legend{display:flex;gap:8px;flex-wrap:wrap;padding:10px 12px;border-top:1px solid var(--border);background:var(--bg3)}
+.phase-mini-legend span{display:inline-flex;align-items:center;gap:6px;font-size:10px;color:var(--text3);font-family:var(--mono)}
+.phase-mini-legend i{display:inline-block;width:10px;height:10px;border-radius:3px}
+
 </style>
 </head>
 <body>
@@ -1653,17 +1679,19 @@ function addDays(dateStr,days){
   d.setDate(d.getDate()+days);
   return d.toISOString().split('T')[0];
 }
-function normalizePhaseEntry(entry){
+function normalizePhaseEntry(entry,idx=0){
   const start=fmtDateOnly(entry?.start||entry?.ts)||fmtDateOnly(new Date());
   let end=fmtDateOnly(entry?.end||'');
   if(end && end<start) end=start;
-  return {phase:entry?.phase||'未設定',note:entry?.note||'',start,end,user:entry?.user||getUser(),createdAt:entry?.createdAt||entry?.ts||new Date().toISOString()};
+  const rawOrder=Number(entry?.order);
+  const order=Number.isFinite(rawOrder)?rawOrder:idx;
+  return {phase:entry?.phase||'未設定',note:entry?.note||'',start,end,user:entry?.user||getUser(),createdAt:entry?.createdAt||entry?.ts||new Date().toISOString(),order};
 }
 function getPhaseHistory(projId){
-  return (phaseHistory[projId]||[]).map(normalizePhaseEntry).sort((a,b)=>new Date(a.start)-new Date(b.start));
+  return (phaseHistory[projId]||[]).map((entry,idx)=>normalizePhaseEntry(entry,idx)).sort((a,b)=>(a.order-b.order)||new Date(a.start)-new Date(b.start));
 }
 function savePhaseHistory(projId,hist,persistNow=true){
-  phaseHistory[projId]=(hist||[]).map(normalizePhaseEntry).sort((a,b)=>new Date(a.start)-new Date(b.start));
+  phaseHistory[projId]=(hist||[]).map((entry,idx)=>normalizePhaseEntry({...entry,order:idx},idx));
   if(persistNow)persistPhases();
 }
 function ensureInitialPhaseHistory(proj){
@@ -1749,6 +1777,56 @@ function syncProjectPhaseFromHistory(projId){
     proj.updatedAt=new Date().toISOString();
   }
 }
+let phaseDragState={projId:'',idx:-1};
+function startPhaseDrag(ev,projId,idx){
+  phaseDragState={projId,idx};
+  const row=ev.currentTarget?.closest?.('.phase-row');
+  if(row) row.style.opacity='.45';
+  try{ev.dataTransfer.effectAllowed='move';ev.dataTransfer.setData('text/plain',`${projId}:${idx}`);}catch(_e){}
+}
+function endPhaseDrag(ev){
+  const row=ev.currentTarget?.closest?.('.phase-row');
+  if(row) row.style.opacity='';
+  phaseDragState={projId:'',idx:-1};
+  document.querySelectorAll('.phase-row.drag-over').forEach(el=>el.classList.remove('drag-over'));
+}
+function allowPhaseDrop(ev){ev.preventDefault();try{ev.dataTransfer.dropEffect='move';}catch(_e){}}
+function phaseDragEnter(ev){
+  const row=ev.currentTarget?.closest?.('.phase-row');
+  if(row) row.classList.add('drag-over');
+}
+function phaseDragLeave(ev){
+  const row=ev.currentTarget?.closest?.('.phase-row');
+  if(row) row.classList.remove('drag-over');
+}
+function dropPhaseEntry(ev,projId,toIdx){
+  ev.preventDefault();
+  const row=ev.currentTarget?.closest?.('.phase-row');
+  if(row) row.classList.remove('drag-over');
+  let fromIdx=phaseDragState.idx;
+  let fromProjId=phaseDragState.projId;
+  try{
+    const raw=ev.dataTransfer?.getData('text/plain')||'';
+    if(raw && raw.includes(':')){
+      const arr=raw.split(':');
+      fromProjId=arr.slice(0,-1).join(':');
+      fromIdx=parseInt(arr[arr.length-1],10);
+    }
+  }catch(_e){}
+  if(fromProjId!==projId || !Number.isInteger(fromIdx) || fromIdx<0 || fromIdx===toIdx)return;
+  const hist=getPhaseHistory(projId);
+  const moved=hist.splice(fromIdx,1)[0];
+  if(!moved)return;
+  let insertIdx=toIdx;
+  if(fromIdx<toIdx) insertIdx--;
+  hist.splice(insertIdx,0,moved);
+  savePhaseHistory(projId,hist,false);
+  syncProjectPhaseFromHistory(projId);
+  persist();
+  showDetail(projId);
+  toast('階段歷程已拖曳排序 ✓','ok');
+}
+
 function openPhaseEdit(projId,idx){
   const hist=getPhaseHistory(projId);
   const entry=hist[idx];
@@ -1808,6 +1886,81 @@ function deletePhaseEntry(projId,idx){
   showDetail(projId);
   toast('階段歷程已刪除 ✓','ok');
 }
+function movePhaseEntry(projId,idx,dir){
+  const hist=getPhaseHistory(projId);
+  const target=idx+dir;
+  if(target<0 || target>=hist.length)return;
+  const moved=hist.splice(idx,1)[0];
+  hist.splice(target,0,moved);
+  savePhaseHistory(projId,hist,false);
+  syncProjectPhaseFromHistory(projId);
+  persist();
+  showDetail(projId);
+  toast(dir<0?'階段歷程已上移 ✓':'階段歷程已下移 ✓','ok');
+}
+function getPhaseColor(idx,total,current){
+  const palette=[
+    {bg:'var(--blue-dim)',bd:'var(--blue)',tx:'var(--blue-t)'},
+    {bg:'var(--green-bg)',bd:'var(--green)',tx:'var(--green-t)'},
+    {bg:'var(--amber-bg)',bd:'var(--amber)',tx:'var(--amber-t)'},
+    {bg:'var(--purple-bg)',bd:'var(--purple)',tx:'var(--purple-t)'},
+    {bg:'var(--teal-bg)',bd:'var(--teal)',tx:'var(--teal-t)'},
+    {bg:'var(--orange-bg)',bd:'var(--orange)',tx:'var(--orange-t)'},
+    {bg:'var(--pink-bg)',bd:'var(--pink)',tx:'var(--pink-t)'}
+  ];
+  const c=palette[idx%palette.length];
+  return {bg:c.bg,bd:c.bd,tx:current?'var(--blue-t)':c.tx};
+}
+function buildPhaseMiniGantt(projId,currentPhase){
+  const proj=projects.find(p=>p.id===projId)||{id:projId,phase:currentPhase,name:'未命名專案'};
+  ensureInitialPhaseHistory(proj);
+  const segs=getProjectPhaseSegments(proj).filter(s=>s.start);
+  if(!segs.length)return '';
+  const today=fmtDateOnly(new Date());
+  const dates=[];
+  segs.forEach(s=>{dates.push(new Date((s.start||today)+'T00:00:00')); dates.push(new Date(((s.end||today)||today)+'T00:00:00'));});
+  let minDate=new Date(Math.min.apply(null,dates));
+  let maxDate=new Date(Math.max.apply(null,dates));
+  minDate=new Date(minDate.getFullYear(),minDate.getMonth(),1);
+  maxDate=new Date(maxDate.getFullYear(),maxDate.getMonth()+1,0);
+  if(minDate.getTime()===maxDate.getTime()) maxDate=new Date(maxDate.getFullYear(),maxDate.getMonth()+1,0);
+  const totalDays=Math.max(1,Math.round((maxDate-minDate)/86400000)+1);
+  const monthLabels=[];
+  let cursor=new Date(minDate.getFullYear(),minDate.getMonth(),1);
+  while(cursor<=maxDate){
+    monthLabels.push(`${cursor.getFullYear()} ${String(cursor.getMonth()+1).padStart(2,'0')}`);
+    cursor=new Date(cursor.getFullYear(),cursor.getMonth()+1,1);
+  }
+  const bars=segs.map((s,idx)=>{
+    const start=new Date((s.start||today)+'T00:00:00');
+    const end=new Date(((s.end||today)||today)+'T00:00:00');
+    const left=((start-minDate)/86400000)/totalDays*100;
+    const width=(Math.max(1,((end-start)/86400000)+1)/totalDays)*100;
+    const clr=getPhaseColor(idx,segs.length,s.current);
+    return `<div class="phase-mini-bar ${s.current?'current':''}" title="${esc(s.phase)}｜${esc(s.start)} ~ ${esc(s.end||'現在')}" style="left:${left}%;width:${Math.max(width,4)}%;top:18px;background:${clr.bg};border-color:${clr.bd};color:${clr.tx}">${esc(s.phase)}</div>`;
+  }).join('');
+  const todayLeft=Math.min(100,Math.max(0,(((new Date(today+'T00:00:00')-minDate)/86400000)/totalDays)*100));
+  const legend=segs.map((s,idx)=>{ const clr=getPhaseColor(idx,segs.length,s.current); return `<span><i style="background:${clr.bg};border:1px solid ${clr.bd}"></i>${esc(s.phase)} ${esc(s.start||'')} → ${esc(s.end||'現在')}</span>`; }).join('');
+  return `<div class="phase-mini-wrap">
+    <div class="phase-mini-head">
+      <div class="phase-mini-project">Phase Timeline</div>
+      <div class="phase-mini-months">${monthLabels.map(m=>`<div class="phase-mini-month">${m}</div>`).join('')}</div>
+    </div>
+    <div class="phase-mini-body">
+      <div class="phase-mini-info">
+        <div class="phase-mini-name">${esc(proj.name||proj.code||'未命名專案')}</div>
+        <div class="phase-mini-sub">${esc(proj.customer||'—')} · ${esc(proj.phase||currentPhase||'未設定')} · ${Math.round(Number(proj.progress)||0)}%</div>
+      </div>
+      <div class="phase-mini-track">
+        <div class="phase-mini-grid">${monthLabels.map(_=>'<span></span>').join('')}</div>
+        <div class="phase-mini-today" style="left:${todayLeft}%"></div>
+        ${bars}
+      </div>
+    </div>
+    <div class="phase-mini-legend">${legend}</div>
+  </div>`;
+}
+
 function renderPhaseTimeline(projId,currentPhase){
   const proj=projects.find(p=>p.id===projId)||{id:projId,phase:currentPhase};
   ensureInitialPhaseHistory(proj);
@@ -1815,23 +1968,28 @@ function renderPhaseTimeline(projId,currentPhase){
   const rows=hist.map((item,idx)=>{
     const current=idx===hist.length-1 && !item.end;
     const done=!!item.end;
-    return `<div class="det-row" style="display:grid;grid-template-columns:120px 140px 140px 1fr auto auto;gap:8px;align-items:center">
+    return `<div class="det-row phase-row" ondragover="allowPhaseDrop(event)" ondragenter="phaseDragEnter(event)" ondragleave="phaseDragLeave(event)" ondrop="dropPhaseEntry(event,'${projId}',${idx})" style="display:grid;grid-template-columns:34px 120px 140px 140px 1fr auto auto;gap:8px;align-items:center;transition:background .12s,border-color .12s;border:1px dashed transparent;border-radius:10px;padding:4px 6px">
+      <span draggable="true" ondragstart="startPhaseDrag(event,'${projId}',${idx})" ondragend="endPhaseDrag(event)" title="拖曳排序" style="cursor:grab;text-align:center;color:var(--text4);font-family:var(--mono);font-size:16px;user-select:none">⋮⋮</span>
       <span class="dv" style="text-align:left;color:${current?'var(--blue-t)':'var(--text)'}">${esc(item.phase)}</span>
       <span class="dv" style="text-align:left">${esc(item.start||'—')}</span>
       <span class="dv" style="text-align:left">${esc(item.end||'—')}</span>
       <span class="dv" style="text-align:left;font-family:var(--font);font-size:12px">${esc(item.note||'')}</span>
       <span class="chip ${current?'c-blue':done?'c-green':'c-gray'}">${current?'目前階段':done?'已完成':'歷程'}</span>
       <div style="display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap">
+        <button class="hbtn" onclick="movePhaseEntry('${projId}',${idx},-1)" ${idx===0?'disabled style="opacity:.45;pointer-events:none"':''}>↑</button>
+        <button class="hbtn" onclick="movePhaseEntry('${projId}',${idx},1)" ${idx===hist.length-1?'disabled style="opacity:.45;pointer-events:none"':''}>↓</button>
         ${current?`<button class="hbtn" onclick="completeCurrentPhase('${projId}')">完成</button>`:''}
         <button class="hbtn" onclick="openPhaseEdit('${projId}',${idx})">編輯</button>
         <button class="hbtn" onclick="deletePhaseEntry('${projId}',${idx})">刪除</button>
       </div>
     </div>`;
   }).join('');
+  const miniGantt=buildPhaseMiniGantt(projId,currentPhase);
   return `<div class="det-sec" style="margin-top:8px">
     <div class="det-sec-title">Phase 進度 & 時間記錄</div>
-    <div class="det-row" style="display:grid;grid-template-columns:120px 140px 140px 1fr auto auto;gap:8px;font-size:10px;color:var(--text4);font-family:var(--mono)">
-      <span>階段</span><span>開始</span><span>結束</span><span>備註</span><span>狀態</span><span>操作</span>
+    ${miniGantt}
+    <div class="det-row" style="display:grid;grid-template-columns:34px 120px 140px 140px 1fr auto auto;gap:8px;font-size:10px;color:var(--text4);font-family:var(--mono)">
+      <span>拖曳</span><span>階段</span><span>開始</span><span>結束</span><span>備註</span><span>狀態</span><span>操作</span>
     </div>
     ${rows||'<div style="color:var(--text4);font-size:12px">尚無階段記錄</div>'}
     <div class="add-phase-entry" style="margin-top:10px;display:grid;grid-template-columns:150px 140px 140px 1fr auto;gap:6px">
@@ -1841,7 +1999,7 @@ function renderPhaseTimeline(projId,currentPhase){
       <input class="phase-entry-inp" id="phase-log-note" placeholder="說明（可留空）...">
       <button class="hbtn pri" onclick="logPhaseEntry('${projId}')">記錄新階段</button>
     </div>
-    <div style="font-size:11px;color:var(--text4);margin-top:8px">開始與結束日期現在都可自行指定；若階段今天完成，也可直接按「完成」。歷程修改後，專案目前 Phase、甘特圖與月曆會一起同步。</div>
+    <div style="font-size:11px;color:var(--text4);margin-top:8px">開始與結束日期現在都可自行指定；若階段今天完成，也可直接按「完成」。歷程修改後，專案目前 Phase、甘特圖與月曆會一起同步。可直接拖曳 ⋮⋮ 排序，也可用 ↑ / ↓ 微調順序。</div>
   </div>`;
 }
 function logPhaseEntry(projId){
