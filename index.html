@@ -1092,6 +1092,7 @@ let weekOffset=0;
 let plannerYear=new Date().getFullYear(),plannerMonth=new Date().getMonth();
 let priceMode='calc'; // 'calc' or 'direct'
 let phaseHistory={}; // projectId -> [{phase, ts, note, user}]
+let phaseEditState={projId:'',idx:-1};
 let auditLogs=[];
 let projectFiles={};
 let currentUploadProjectId=null;
@@ -1752,20 +1753,41 @@ function openPhaseEdit(projId,idx){
   const hist=getPhaseHistory(projId);
   const entry=hist[idx];
   if(!entry)return;
-  const nextPhase=prompt('修改階段',entry.phase);
-  if(nextPhase===null)return;
-  const cleanPhase=(nextPhase||'').trim();
+  phaseEditState={projId,idx};
+  const phaseSel=gid('pe-phase');
+  if(phaseSel){
+    phaseSel.innerHTML=(cfg.phases||[]).map(p=>`<option ${p===entry.phase?'selected':''}>${p}</option>`).join('');
+    if(!(cfg.phases||[]).includes(entry.phase)) phaseSel.innerHTML += `<option selected>${entry.phase}</option>`;
+    phaseSel.value=entry.phase;
+  }
+  setv('pe-start', entry.start||'');
+  setv('pe-end', entry.end||'');
+  setv('pe-note', entry.note||'');
+  openOverlay('phase-edit-overlay');
+}
+function closePhaseEditModal(){
+  phaseEditState={projId:'',idx:-1};
+  closeOverlay('phase-edit-overlay');
+}
+function markPhaseEditComplete(){
+  setv('pe-end', fmtDateOnly(new Date()));
+}
+function savePhaseEditModal(){
+  const {projId,idx}=phaseEditState||{};
+  const hist=getPhaseHistory(projId);
+  const entry=hist[idx];
+  if(!entry)return toast('找不到要編輯的階段歷程','err');
+  const cleanPhase=(val('pe-phase')||'').trim();
+  const nextStart=fmtDateOnly(val('pe-start')||entry.start)||entry.start;
+  let nextEnd=fmtDateOnly(val('pe-end')||'');
+  const nextNote=val('pe-note')||'';
   if(!cleanPhase)return toast('階段不能空白','err');
-  const nextStart=prompt('修改開始日 (YYYY-MM-DD)',entry.start||fmtDateOnly(new Date()));
-  if(nextStart===null)return;
-  const nextEnd=prompt('修改結束日 (YYYY-MM-DD，可留空)',entry.end||'');
-  if(nextEnd===null)return;
-  const nextNote=prompt('修改備註',entry.note||'');
-  if(nextNote===null)return;
-  hist[idx]={...entry,phase:cleanPhase,start:fmtDateOnly(nextStart)||entry.start,end:fmtDateOnly(nextEnd||''),note:nextNote||''};
+  if(nextEnd && nextEnd < nextStart) nextEnd = nextStart;
+  hist[idx]={...entry,phase:cleanPhase,start:nextStart,end:nextEnd,note:nextNote};
   savePhaseHistory(projId,hist,false);
   syncProjectPhaseFromHistory(projId);
   persist();
+  closePhaseEditModal();
   showDetail(projId);
   toast('階段歷程已更新 ✓','ok');
 }
