@@ -461,6 +461,22 @@ input,select,textarea,button{font-family:var(--font)}
 @media(max-width:1000px){.reminder-center{grid-template-columns:1fr}.reminder-mini-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:680px){.reminder-mini-grid{grid-template-columns:1fr}.reminder-item{grid-template-columns:8px 1fr}.reminder-tag{grid-column:2}}
 
+
+/* ── v19 compact cleanup: remove recent changes from home, shrink reminders ── */
+.reminder-center.compact{display:block;margin-bottom:10px}
+.reminder-center.compact .reminder-card{padding:10px 12px;border-radius:14px}
+.reminder-center.compact .reminder-title{margin-bottom:8px;font-size:12px}
+.reminder-center.compact .reminder-list{max-height:178px;gap:5px}
+.reminder-center.compact .reminder-item{grid-template-columns:7px 1fr auto;padding:7px 9px;border-radius:11px}
+.reminder-center.compact .reminder-name{font-size:11px}
+.reminder-center.compact .reminder-sub{font-size:9px;line-height:1.35;margin-top:2px}
+.reminder-center.compact .reminder-tag{font-size:9px;padding:2px 6px}
+.reminder-summary-row{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px}
+.reminder-summary-chip{border:1px solid #e5edf5;background:#f8fafc;border-radius:999px;padding:5px 8px;font-size:10px;color:#64748b;font-family:var(--mono);display:flex;align-items:center;justify-content:space-between;gap:6px}
+.reminder-summary-chip b{font-size:13px;color:#334155}
+.reminder-summary-chip.high b{color:#dc2626}.reminder-summary-chip.today b{color:#b45309}.reminder-summary-chip.medium b{color:#2563eb}
+@media(max-width:680px){.reminder-summary-row{grid-template-columns:repeat(2,1fr)}.reminder-center.compact .reminder-list{max-height:220px}}
+
 /* Utils */
 .empty{padding:36px;text-align:center;color:var(--text4);font-size:12px}
 .empty .ei{font-size:26px;margin-bottom:7px}
@@ -4532,14 +4548,21 @@ function getStep9ReminderItems(){
 function renderStep9ReminderCenter(){
   const items=getStep9ReminderItems();
   const high=items.filter(x=>x.level==='high').length,todayN=items.filter(x=>x.level==='today').length,medium=items.filter(x=>x.level==='medium').length,info=items.filter(x=>x.level==='info').length;
-  const top=items.slice(0,12).map(it=>`<div class="reminder-item ${it.level}" onclick="showDetail('${it.project.id}')"><span class="reminder-dot"></span><div class="reminder-main"><div class="reminder-name">${esc(it.project.name||'未命名案件')}</div><div class="reminder-sub">${esc(it.type)} · ${esc(it.text)} · ${esc(it.project.customer||'無客戶')} · ${esc(it.project.pm||it.project.updatedBy||getUser())}</div></div><span class="reminder-tag">${esc(it.tag)}</span></div>`).join('');
-  return `<div class="reminder-center"><div class="reminder-card"><div class="reminder-title">🔔 今日提醒中心 <small>自動抓逾期、報價、樣品、未更新</small></div><div class="reminder-list">${top||'<div class="history-empty">目前沒有需要提醒的案件</div>'}</div></div><div class="reminder-card"><div class="reminder-title">提醒統計 <small>Step9</small></div><div class="reminder-mini-grid"><div class="reminder-mini high"><div class="ml">逾期/高風險</div><div class="mv">${high}</div></div><div class="reminder-mini today"><div class="ml">今日追蹤</div><div class="mv">${todayN}</div></div><div class="reminder-mini"><div class="ml">即將處理</div><div class="mv">${medium}</div></div><div class="reminder-mini"><div class="ml">未設定/補資料</div><div class="mv">${info}</div></div></div><div style="font-size:11px;color:#64748b;line-height:1.8;margin-top:10px">建議每天先看這裡：紅色先處理，黃色今天處理，藍色排進近 3 天。</div></div></div>`;
+  const top=items.slice(0,5).map(it=>`<div class="reminder-item ${it.level}" onclick="showDetail('${it.project.id}')"><span class="reminder-dot"></span><div class="reminder-main"><div class="reminder-name">${esc(it.project.name||'未命名案件')}</div><div class="reminder-sub">${esc(it.type)} · ${esc(it.text)} · ${esc(it.project.customer||'無客戶')}</div></div><span class="reminder-tag">${esc(it.tag)}</span></div>`).join('');
+  return `<div class="reminder-center compact"><div class="reminder-card"><div class="reminder-title">🔔 今日提醒 <small>只顯示前 5 筆</small></div><div class="reminder-summary-row"><div class="reminder-summary-chip high">高風險 <b>${high}</b></div><div class="reminder-summary-chip today">今日 <b>${todayN}</b></div><div class="reminder-summary-chip medium">近期 <b>${medium}</b></div><div class="reminder-summary-chip">補資料 <b>${info}</b></div></div><div class="reminder-list">${top||'<div class="history-empty">目前沒有需要提醒的案件</div>'}</div></div></div>`;
 }
 const STEP9_originalRenderDashboard=renderDashboard;
 renderDashboard=function(){
   STEP9_originalRenderDashboard();
   const panel=document.getElementById('panel-dashboard');
-  if(panel && !panel.querySelector('.reminder-center')) panel.insertAdjacentHTML('afterbegin',renderStep9ReminderCenter());
+  if(panel){
+    // 移除首頁「最近修改」卡片，避免手機版過長。個別案件仍保留修改紀錄。
+    panel.querySelectorAll('.home-card').forEach(card=>{
+      const title=card.querySelector('.home-title');
+      if(title && title.textContent.includes('最近修改')) card.remove();
+    });
+    if(!panel.querySelector('.reminder-center')) panel.insertAdjacentHTML('afterbegin',renderStep9ReminderCenter());
+  }
 };
 const STEP9_originalMakePCard=makePCard;
 makePCard=function(p){
