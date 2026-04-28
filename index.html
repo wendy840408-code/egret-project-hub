@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>EGRET 新案開發追蹤系統 v19 Step7</title>
+<title>EGRET 新案開發追蹤系統 v19 Step9 Hotfix</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -4473,6 +4473,214 @@ makePCard=function(p){
   }
   return html;
 };
+
+
+// ══════════════════════════════════════════════
+// v19 Hotfix: Quote / Sample History Functions
+// 修正：renderQuoteHistory / renderSampleHistory is not defined
+// ══════════════════════════════════════════════
+let editingQuoteId=null;
+let editingSampleId=null;
+
+function _v19FmtDate(v){
+  if(!v) return '—';
+  try{
+    const s=String(v);
+    if(/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0,10);
+    const d=new Date(s);
+    if(!isNaN(d)) return d.toISOString().slice(0,10);
+    return s;
+  }catch(e){return String(v||'—');}
+}
+function _v19Num(v, digits=4){
+  const n=Number(v);
+  if(!isFinite(n)) return '—';
+  return n.toLocaleString(undefined,{maximumFractionDigits:digits});
+}
+function _v19ProjectLabel(p){return `${p.code||p.id||''} ${p.name||''}`.trim()||'未命名專案';}
+function _v19FillProjectSelect(id, selectedId){
+  const el=document.getElementById(id);
+  if(!el) return;
+  const opts=(projects||[]).map(p=>`<option value="${esc(p.id)}" ${p.id===selectedId?'selected':''}>${esc(_v19ProjectLabel(p))}</option>`).join('');
+  el.innerHTML=opts || '<option value="">尚無案件</option>';
+  if(selectedId) el.value=selectedId;
+}
+function _v19TouchProject(projectId, label){
+  const p=(projects||[]).find(x=>x.id===projectId);
+  if(!p) return;
+  const old={...p};
+  p.updatedAt=nowISO();
+  p.updatedBy=getUser();
+  p._rev=Number(p._rev||0)+1;
+  if(label) p.lastAction=label;
+  try{addAuditEntries(old,p,'update');}catch(e){}
+}
+function _v19AfterHistoryChange(projectId, msg){
+  persist();
+  try{renderCurrent();}catch(e){}
+  if(projectId && currentDetailProjectId===projectId){try{showDetail(projectId);}catch(e){}}
+  if(typeof toast==='function') toast(msg||'已更新','ok');
+}
+
+function renderQuoteHistory(projectId){
+  const items=(quoteRecords||[])
+    .filter(q=>q.projectId===projectId)
+    .sort((a,b)=>String(b.quoteDate||b.date||b.updatedAt||b.createdAt||'').localeCompare(String(a.quoteDate||a.date||a.updatedAt||a.createdAt||'')));
+  if(!items.length) return '<div class="history-empty">尚無報價版本紀錄</div>';
+  return `<div class="history-list">${items.map(q=>{
+    const title=`${q.version||'V?'}｜${q.currency||''} ${_v19Num(q.unitPrice??q.unit,4)}`;
+    return `<div class="history-item" onclick="openQuoteModal('${esc(q.id)}','${esc(projectId)}')">
+      <div class="history-top"><div class="history-title">${esc(title)}</div><span class="quote-pill">${esc(q.status||'未設定')}</span></div>
+      <div class="history-meta">報價日：${esc(_v19FmtDate(q.quoteDate||q.date))}　有效至：${esc(_v19FmtDate(q.validUntil||q.valid))}　MOQ：${esc(_v19Num(q.moq,0))}　LT：${esc(q.leadTime||q.lt||'—')}　毛利：${esc(q.margin||'—')}%</div>
+      ${q.note?`<div class="history-note">${esc(q.note)}</div>`:''}
+    </div>`;
+  }).join('')}</div>`;
+}
+function openQuoteModal(id='new', projectId=''){
+  editingQuoteId=(id && id!=='new')?id:null;
+  const rec=editingQuoteId?(quoteRecords||[]).find(q=>q.id===editingQuoteId):null;
+  const selectedProject=rec?.projectId || projectId || currentDetailProjectId || projects?.[0]?.id || '';
+  _v19FillProjectSelect('q-project', selectedProject);
+  const set=(id,v)=>{const el=document.getElementById(id); if(el) el.value=v??'';};
+  set('q-version', rec?.version || `V${((quoteRecords||[]).filter(q=>q.projectId===selectedProject).length||0)+1}`);
+  set('q-date', rec?.quoteDate || rec?.date || today());
+  set('q-valid', rec?.validUntil || rec?.valid || '');
+  set('q-currency', rec?.currency || 'USD');
+  set('q-unit', rec?.unitPrice ?? rec?.unit ?? '');
+  set('q-moq', rec?.moq || '');
+  set('q-lt', rec?.leadTime || rec?.lt || '');
+  set('q-status', rec?.status || '草稿');
+  set('q-margin', rec?.margin || '');
+  set('q-note', rec?.note || '');
+  const title=document.getElementById('quote-modal-title'); if(title) title.textContent=editingQuoteId?'編輯報價版本':'新增報價版本';
+  const del=document.getElementById('del-quote-btn'); if(del) del.style.display=editingQuoteId?'inline-flex':'none';
+  document.getElementById('quote-overlay')?.classList.add('open');
+}
+function closeQuoteModal(){document.getElementById('quote-overlay')?.classList.remove('open'); editingQuoteId=null;}
+function saveQuoteRecord(){
+  const projectId=val('q-project') || currentDetailProjectId;
+  if(!projectId){toast('請先選擇綁定新案','err');return;}
+  const old=editingQuoteId?(quoteRecords||[]).find(q=>q.id===editingQuoteId):null;
+  const rec={
+    ...(old||{}),
+    id: editingQuoteId || uid('quote'),
+    projectId,
+    version: val('q-version') || 'V1',
+    quoteDate: val('q-date') || today(),
+    validUntil: val('q-valid'),
+    currency: val('q-currency') || 'USD',
+    unitPrice: Number(val('q-unit')||0),
+    moq: Number(val('q-moq')||0),
+    leadTime: val('q-lt'),
+    status: val('q-status') || '草稿',
+    margin: val('q-margin'),
+    note: val('q-note'),
+    createdAt: old?.createdAt || nowISO(),
+    createdBy: old?.createdBy || getUser(),
+    updatedAt: nowISO(),
+    updatedBy: getUser(),
+    _rev: Number(old?._rev||0)+1
+  };
+  if(editingQuoteId){quoteRecords=quoteRecords.map(q=>q.id===editingQuoteId?rec:q);} else {quoteRecords.unshift(rec);} 
+  _v19TouchProject(projectId, editingQuoteId?'修改報價版本':'新增報價版本');
+  closeQuoteModal();
+  _v19AfterHistoryChange(projectId, editingQuoteId?'報價已更新':'報價已新增');
+}
+function deleteQuoteRecord(){
+  if(!editingQuoteId) return;
+  if(!confirm('確定要刪除這筆報價紀錄嗎？')) return;
+  const old=(quoteRecords||[]).find(q=>q.id===editingQuoteId);
+  quoteRecords=(quoteRecords||[]).filter(q=>q.id!==editingQuoteId);
+  if(old?.projectId) _v19TouchProject(old.projectId,'刪除報價版本');
+  const pid=old?.projectId||currentDetailProjectId;
+  closeQuoteModal();
+  _v19AfterHistoryChange(pid,'報價已刪除');
+}
+
+function renderSampleHistory(projectId){
+  const items=(sampleRecords||[])
+    .filter(sp=>sp.projectId===projectId)
+    .sort((a,b)=>String(b.shipDate||b.ship||b.requestDate||b.updatedAt||b.createdAt||'').localeCompare(String(a.shipDate||a.ship||a.requestDate||a.updatedAt||a.createdAt||'')));
+  if(!items.length) return '<div class="history-empty">尚無樣品歷史紀錄</div>';
+  return `<div class="history-list">${items.map(sp=>{
+    const title=`${sp.version||'S?'}｜${sp.qty?`${sp.qty} pcs`:''}`;
+    return `<div class="history-item" onclick="openSampleModal('${esc(sp.id)}','${esc(projectId)}')">
+      <div class="history-top"><div class="history-title">${esc(title)}</div><span class="sample-pill">${esc(sp.status||'未設定')}</span></div>
+      <div class="history-meta">申請：${esc(_v19FmtDate(sp.requestDate||sp.request))}　寄樣：${esc(_v19FmtDate(sp.shipDate||sp.ship))}　Tracking：${esc(sp.tracking||'—')}　回饋：${esc(_v19FmtDate(sp.feedbackDate))}</div>
+      ${sp.spec?`<div class="history-note">規格/修改：${esc(sp.spec)}</div>`:''}
+      ${sp.feedback?`<div class="history-note">客戶回饋：${esc(sp.feedback)}</div>`:''}
+    </div>`;
+  }).join('')}</div>`;
+}
+function openSampleModal(id='new', projectId=''){
+  editingSampleId=(id && id!=='new')?id:null;
+  const rec=editingSampleId?(sampleRecords||[]).find(sp=>sp.id===editingSampleId):null;
+  const selectedProject=rec?.projectId || projectId || currentDetailProjectId || projects?.[0]?.id || '';
+  _v19FillProjectSelect('sp-project', selectedProject);
+  const set=(id,v)=>{const el=document.getElementById(id); if(el) el.value=v??'';};
+  set('sp-version', rec?.version || `S${((sampleRecords||[]).filter(sp=>sp.projectId===selectedProject).length||0)+1}`);
+  set('sp-request', rec?.requestDate || rec?.request || today());
+  set('sp-ship', rec?.shipDate || rec?.ship || '');
+  set('sp-qty', rec?.qty || '');
+  set('sp-tracking', rec?.tracking || '');
+  set('sp-status', rec?.status || '待製作');
+  set('sp-feedback-date', rec?.feedbackDate || '');
+  set('sp-spec', rec?.spec || '');
+  set('sp-feedback', rec?.feedback || '');
+  const title=document.getElementById('sample-modal-title'); if(title) title.textContent=editingSampleId?'編輯樣品紀錄':'新增樣品紀錄';
+  const del=document.getElementById('del-sample-btn'); if(del) del.style.display=editingSampleId?'inline-flex':'none';
+  document.getElementById('sample-overlay')?.classList.add('open');
+}
+function closeSampleModal(){document.getElementById('sample-overlay')?.classList.remove('open'); editingSampleId=null;}
+function saveSampleRecord(){
+  const projectId=val('sp-project') || currentDetailProjectId;
+  if(!projectId){toast('請先選擇綁定新案','err');return;}
+  const old=editingSampleId?(sampleRecords||[]).find(sp=>sp.id===editingSampleId):null;
+  const rec={
+    ...(old||{}),
+    id: editingSampleId || uid('sample'),
+    projectId,
+    version: val('sp-version') || 'S1',
+    requestDate: val('sp-request') || today(),
+    shipDate: val('sp-ship'),
+    qty: Number(val('sp-qty')||0),
+    tracking: val('sp-tracking'),
+    status: val('sp-status') || '待製作',
+    feedbackDate: val('sp-feedback-date'),
+    spec: val('sp-spec'),
+    feedback: val('sp-feedback'),
+    createdAt: old?.createdAt || nowISO(),
+    createdBy: old?.createdBy || getUser(),
+    updatedAt: nowISO(),
+    updatedBy: getUser(),
+    _rev: Number(old?._rev||0)+1
+  };
+  if(editingSampleId){sampleRecords=sampleRecords.map(sp=>sp.id===editingSampleId?rec:sp);} else {sampleRecords.unshift(rec);} 
+  const p=(projects||[]).find(x=>x.id===projectId);
+  if(p && ['已寄樣','客戶測試中','需修改','測試通過','測試失敗'].includes(rec.status)){
+    const oldP={...p};
+    if(rec.status==='已寄樣' && !['客戶測試','等回覆','成案/失案'].includes(p.phase)) p.phase='樣品';
+    if(rec.status==='客戶測試中') p.phase='客戶測試';
+    if(rec.status==='測試通過') p.phase='成案/失案';
+    p.updatedAt=nowISO(); p.updatedBy=getUser(); p._rev=Number(p._rev||0)+1;
+    try{addAuditEntries(oldP,p,'update');}catch(e){}
+  }else{
+    _v19TouchProject(projectId, editingSampleId?'修改樣品紀錄':'新增樣品紀錄');
+  }
+  closeSampleModal();
+  _v19AfterHistoryChange(projectId, editingSampleId?'樣品已更新':'樣品已新增');
+}
+function deleteSampleRecord(){
+  if(!editingSampleId) return;
+  if(!confirm('確定要刪除這筆樣品紀錄嗎？')) return;
+  const old=(sampleRecords||[]).find(sp=>sp.id===editingSampleId);
+  sampleRecords=(sampleRecords||[]).filter(sp=>sp.id!==editingSampleId);
+  if(old?.projectId) _v19TouchProject(old.projectId,'刪除樣品紀錄');
+  const pid=old?.projectId||currentDetailProjectId;
+  closeSampleModal();
+  _v19AfterHistoryChange(pid,'樣品已刪除');
+}
+
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
 load();updateUserDisplay();loadFX();gotoView('dashboard');
