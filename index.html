@@ -700,11 +700,89 @@ input,select,textarea,button{font-family:var(--font)}
 .phase-mini-legend span{display:inline-flex;align-items:center;gap:6px;font-size:10px;color:var(--text3);font-family:var(--mono)}
 .phase-mini-legend i{display:inline-block;width:10px;height:10px;border-radius:3px}
 
+
+
+/* ─────────────────────────────────────────
+   v19 Mobile Responsive Patch
+   手機版：漢堡選單、單欄卡片、表格橫滑、表單單欄
+───────────────────────────────────────── */
+.mobile-menu-btn{display:none;align-items:center;justify-content:center;width:38px;height:38px;border:1px solid var(--border);background:var(--bg3);border-radius:12px;color:var(--text2);font-size:20px;cursor:pointer;flex-shrink:0}
+.mobile-backdrop{display:none;position:fixed;inset:0;background:rgba(15,23,42,.42);z-index:88;backdrop-filter:blur(2px)}
+.mobile-backdrop.open{display:block}
+.mobile-bottom-nav{display:none}
+
+@media(max-width:900px){
+  html,body{height:100%;overflow:hidden;font-size:13px}
+  body{background:#f6f8fb}
+  .hdr{height:auto;min-height:58px;padding:9px 10px;gap:8px;flex-wrap:nowrap;position:sticky;top:0;z-index:90;box-shadow:0 1px 0 rgba(15,23,42,.06)}
+  .mobile-menu-btn{display:flex}
+  .hdr-icon{width:30px;height:30px;border-radius:10px;font-size:10px}
+  .hdr-brand{font-size:14px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px}
+  .hdr-brand span{display:none}
+  .hdr .chip{display:none}
+  .hdr-spacer{flex:1;min-width:4px}
+  .fb-bar{padding:4px 8px;font-size:0;border-radius:999px;gap:4px}
+  .fb-bar #fb-status-txt{font-size:11px;color:var(--green-t)!important;max-width:58px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .presence-wrap{display:none}
+  .hdr-fx{display:none}
+  .fx-update-btn{display:none}
+  .hdr>.hbtn:not(.pri){display:none}
+  .hdr>.hbtn.pri{padding:8px 12px;border-radius:12px;font-size:12px}
+
+  .app{position:relative;overflow:hidden}
+  .sidebar{display:flex!important;position:fixed;top:0;left:0;bottom:0;width:min(82vw,310px);z-index:100;transform:translateX(-105%);transition:transform .22s ease;background:var(--bg2);box-shadow:18px 0 44px rgba(15,23,42,.18);border-right:1px solid var(--border);padding-top:10px}
+  body.mobile-sidebar-open .sidebar{transform:translateX(0)}
+  body.mobile-sidebar-open .mobile-backdrop{display:block}
+  .sb-item{padding:11px 14px;margin:2px 10px;border-radius:12px;font-size:14px}
+  .sb-sec{padding:12px 14px 5px;font-size:10px}
+  .sb-foot{padding-bottom:20px}
+  .main{width:100%;min-width:0}
+  .toolbar-wrap{position:sticky;top:58px;z-index:45}
+  .toolbar-top{padding:10px;gap:8px;flex-wrap:wrap}
+  .search-wrap{flex:1 1 100%;order:1}
+  .filter-toggle{order:2;flex:1;justify-content:center;padding:8px 10px;border-radius:12px}
+  .toolbar-top .hbtn{order:2;flex:1;justify-content:center;padding:8px 10px;border-radius:12px}
+  .filters-inner{padding:0 10px 10px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .filters-inner .fsel{width:100%;min-width:0;padding:8px 10px;border-radius:12px}
+  .sort-panel{padding:8px 10px;overflow-x:auto;flex-wrap:nowrap}.sort-btn{flex:0 0 auto;padding:8px 10px;border-radius:12px}
+  .content{padding:12px 10px 76px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+
+  .kpi-strip,.home-kpi-strip,.ops-kpis,.year-kpi,.week-kpi{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px}
+  .kpi,.home-kpi,.ops-kpi{border-radius:16px;padding:12px}.kpi-val,.home-kpi .kv,.ops-kpi .kv{font-size:21px}
+  .dash-grid,.det-grid,.det-grid.two,.det-grid.three,.ops-layout,.home-grid-v11,.home-layout-fixed,.home-grid-order,.home-grid-task,.reminder-center{grid-template-columns:1fr!important;gap:10px}
+  .dash-card.wide,.home-card.span2,.home-card.full,.det-sec.wide{grid-column:auto!important}
+
+  .kanban{display:grid;grid-template-columns:1fr;gap:10px;overflow-x:hidden;min-height:0;padding-bottom:0}
+  .kcol{width:100%;min-width:0;border-radius:16px}.kcol-body{max-height:none}.pcard{border-radius:16px;padding:13px}.pc-metrics{grid-template-columns:repeat(3,minmax(0,1fr));overflow:hidden}.pc-foot{gap:8px;flex-wrap:wrap}
+
+  .tbl-wrap{border-radius:16px;overflow-x:auto;-webkit-overflow-scrolling:touch}.tbl{min-width:760px}.tbl th,.tbl td{padding:10px 11px;white-space:nowrap}.ops-table .tbl{min-width:900px}
+  .gantt-wrap{border-radius:16px}.gantt-inner{min-width:720px}.g-lbl-col,.g-lbl{width:170px;min-width:170px}.g-month{min-width:64px}
+  .cal-cell{min-height:68px;padding:4px}.cal-ev{font-size:8px}.cal-day-lbl{font-size:9px}.cal-nav{justify-content:space-between}
+  .month-view-grid{min-width:760px}.month-rich-grid,.week-strip{grid-template-columns:1fr!important}.week-grid{grid-template-columns:1fr!important}.year-grid{grid-template-columns:1fr 1fr!important}.phase-soft-grid,.proj-soft-list,.reminder-mini-grid,.soft-stat-grid{grid-template-columns:1fr!important}
+
+  .det-hdr{border-radius:18px;padding:16px}.det-name{font-size:18px}.det-row{align-items:flex-start}.dv{max-width:58%;word-break:break-word}.sec-hdr{gap:8px;align-items:flex-start;flex-direction:column}.sec-hdr .hbtn{width:100%;justify-content:center;padding:9px 12px;border-radius:12px}
+
+  .overlay{padding:0;align-items:flex-end}.modal,.modal.sm{max-width:none;width:100%;margin:0;border-radius:22px 22px 0 0;max-height:92vh}.modal-body{max-height:72vh;padding:16px;overflow-y:auto}.modal-hdr{padding:14px 16px}.modal-footer{padding:12px 16px;gap:8px;flex-wrap:wrap}.modal-footer .hbtn{flex:1;justify-content:center;padding:10px 12px}.modal-footer .hbtn[style*="margin-right:auto"]{flex-basis:100%;margin-right:0!important}
+  .fg2,.fg3,.fg4,.curr-split{grid-template-columns:1fr!important}.finp,.fsel,.ftxt{font-size:16px;padding:10px 11px;border-radius:12px}.flabel{font-size:12px}.tier-hdr,.tier-row{grid-template-columns:1fr!important;gap:6px}.tier-del{width:100%;background:var(--red-bg);color:var(--red-t)}
+
+  .file-item{flex-direction:column;border-radius:16px}.file-left{width:100%;min-width:0}.file-actions{width:100%;justify-content:stretch}.file-actions .hbtn{flex:1;justify-content:center}.file-name{max-width:100%}.file-thumb{width:64px;height:64px}
+  .reminder-item{grid-template-columns:8px 1fr;align-items:start}.reminder-tag{grid-column:2;width:max-content}.reminder-list{max-height:none}
+
+  .mobile-bottom-nav{display:grid;position:fixed;left:8px;right:8px;bottom:8px;z-index:80;grid-template-columns:repeat(5,1fr);gap:4px;background:rgba(255,255,255,.94);border:1px solid var(--border);border-radius:18px;padding:6px;box-shadow:0 12px 32px rgba(15,23,42,.16);backdrop-filter:blur(10px)}
+  .mbn-item{border:0;background:transparent;border-radius:13px;padding:7px 2px;color:var(--text3);font-size:10px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer}.mbn-item b{font-size:15px;line-height:1}.mbn-item.active{background:var(--blue-dim);color:var(--blue-t);font-weight:700}
+}
+
+@media(max-width:430px){
+  .hdr-brand{max-width:118px}.fb-bar #fb-status-txt{display:none}.hdr>.hbtn.pri{font-size:0;padding:8px 10px}.hdr>.hbtn.pri::after{content:'＋';font-size:18px;line-height:1}
+  .kpi-strip,.home-kpi-strip,.ops-kpis,.year-kpi,.week-kpi{grid-template-columns:1fr 1fr!important}.kpi-lbl{font-size:9px}.kpi-val{font-size:20px}.det-name{font-size:16px}.pc-metrics{grid-template-columns:1fr 1fr}.filters-inner{grid-template-columns:1fr}
+}
+
 </style>
 </head>
 <body>
 <!-- ╔═══════════════════════ HEADER ═══════════════════════╗ -->
 <div class="hdr">
+  <button class="mobile-menu-btn" type="button" onclick="toggleMobileSidebar()" aria-label="開啟選單">☰</button>
   <div class="hdr-icon">EG</div>
   <div class="hdr-brand">EGRET <span>Project Hub</span></div>
   <span class="chip c-purple">v4 PRO FINAL</span>
@@ -726,6 +804,7 @@ input,select,textarea,button{font-family:var(--font)}
 </div>
 
 <!-- ╔═══════════════════════ APP ═══════════════════════╗ -->
+<div class="mobile-backdrop" id="mobile-backdrop" onclick="closeMobileSidebar()"></div>
 <div class="app">
 
 <!-- SIDEBAR -->
@@ -4689,6 +4768,35 @@ setTimeout(()=>{try{renderCurrent();}catch(e){console.warn('initial render faile
 const hasUserName=ensureUserName();
 // Try Firebase (silent fail if no config)
 if(hasUserName){initFirebase().catch(()=>{});} else {try{renderCurrent();}catch(_e){}}
+
+
+// ── v19 Mobile Responsive Patch JS ──
+function toggleMobileSidebar(){document.body.classList.toggle('mobile-sidebar-open');}
+function closeMobileSidebar(){document.body.classList.remove('mobile-sidebar-open');}
+function updateMobileBottomNav(){
+  document.querySelectorAll('.mbn-item').forEach(btn=>btn.classList.toggle('active', btn.dataset.view===currentView));
+}
+(function(){
+  const oldGotoView = window.gotoView;
+  window.gotoView = function(name, keepQuick=false){
+    const res = oldGotoView ? oldGotoView(name, keepQuick) : undefined;
+    closeMobileSidebar();
+    updateMobileBottomNav();
+    return res;
+  };
+  window.addEventListener('resize',()=>{ if(window.innerWidth>900) closeMobileSidebar(); });
+  document.addEventListener('keydown',(e)=>{ if(e.key==='Escape') closeMobileSidebar(); });
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(updateMobileBottomNav,50));
+})();
 </script>
+
+<nav class="mobile-bottom-nav" id="mobile-bottom-nav" aria-label="手機快速導覽">
+  <button class="mbn-item" data-view="dashboard" onclick="gotoView('dashboard')"><b>◈</b><span>首頁</span></button>
+  <button class="mbn-item" data-view="kanban" onclick="gotoView('kanban')"><b>⊞</b><span>看板</span></button>
+  <button class="mbn-item" data-view="list" onclick="gotoView('list')"><b>☰</b><span>列表</span></button>
+  <button class="mbn-item" data-view="planner" onclick="gotoView('planner')"><b>✓</b><span>任務</span></button>
+  <button class="mbn-item" data-view="analytics" onclick="gotoView('analytics')"><b>⬧</b><span>分析</span></button>
+</nav>
+
 </body>
 </html>
