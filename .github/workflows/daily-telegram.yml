@@ -1,0 +1,19 @@
+name: EGRET ERP - Telegram Daily Trigger
+
+on:
+  schedule:
+    # 這是世界標準時間。02:00 AM 就代表台灣時間的早上 10:00 AM
+    # 每天早上 10:00 點，GitHub 就會自動醒來去叫醒 Firebase
+    - cron: '0 2 * * *'
+  
+  # 允許妳在 GitHub 網頁上隨時手動點擊按鈕來測試發送
+  workflow_dispatch:
+
+jobs:
+  trigger_firebase:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call Firebase Function
+        run: |
+          curl -s -X POST "https://YOUR_FIREBASE_REGION-YOUR_PROJECT_ID.cloudfunctions.net/checkTelegramSchedule" \
+            -H "Content-Type: application/json"
