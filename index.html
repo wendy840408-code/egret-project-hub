@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>EGRET 新案開發追蹤系統 v19 Step9 Hotfix</title>
+<title>EGRET 新案開發追蹤系統 v21 Telegram Auto Follow-up</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -793,6 +793,33 @@ input,select,textarea,button{font-family:var(--font)}
   .kpi-strip,.home-kpi-strip,.ops-kpis,.year-kpi,.week-kpi{grid-template-columns:1fr 1fr!important}.kpi-lbl{font-size:9px}.kpi-val{font-size:20px}.det-name{font-size:16px}.pc-metrics{grid-template-columns:1fr 1fr}.filters-inner{grid-template-columns:1fr}
 }
 
+
+/* ── v20: Telegram Daily Push Center ── */
+.tg-hero{display:grid;grid-template-columns:1.05fr .95fr;gap:12px;margin-bottom:14px}
+.tg-card{background:#fff;border:1px solid var(--border);border-radius:18px;padding:16px;box-shadow:0 2px 12px rgba(58,84,115,.04)}
+.tg-card.soft-blue{background:linear-gradient(180deg,#f4f9ff 0%,#ffffff 100%)}
+.tg-card.soft-mint{background:linear-gradient(180deg,#f3fcf8 0%,#ffffff 100%)}
+.tg-title{font-size:13px;font-weight:800;color:#334155;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+.tg-title small{font-size:10px;font-weight:500;color:#94a3b8;font-family:var(--mono)}
+.tg-steps{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+.tg-step{background:#fff;border:1px solid #e8edf3;border-radius:14px;padding:10px}
+.tg-step .num{width:22px;height:22px;border-radius:999px;background:#dbeafe;color:#1d4ed8;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;font-family:var(--mono);margin-bottom:7px}
+.tg-step .h{font-size:11px;font-weight:700;color:#334155;margin-bottom:3px}
+.tg-step .p{font-size:10px;color:#64748b;line-height:1.55}
+.tg-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tg-switch-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.tg-switch{border:1px solid #e8edf3;border-radius:14px;background:#fff;padding:10px;display:flex;gap:8px;align-items:flex-start}
+.tg-switch input{margin-top:2px;accent-color:var(--blue)}
+.tg-switch b{display:block;font-size:11px;color:#334155;margin-bottom:3px}
+.tg-switch span{font-size:10px;color:#64748b;line-height:1.45}
+.tg-preview{background:#0f172a;color:#e2e8f0;border-radius:16px;padding:14px;font-family:var(--mono);font-size:11px;line-height:1.65;white-space:pre-wrap;max-height:420px;overflow:auto;border:1px solid #1e293b}
+.tg-code{background:#0f172a;color:#e2e8f0;border-radius:16px;padding:14px;font-family:var(--mono);font-size:11px;line-height:1.6;white-space:pre;overflow:auto;max-height:460px;border:1px solid #1e293b}
+.tg-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.tg-note{font-size:11px;color:#64748b;line-height:1.7;background:#f8fafc;border:1px solid #e5edf5;border-radius:14px;padding:10px 12px;margin-top:10px}
+.tg-pill{display:inline-flex;align-items:center;gap:5px;border:1px solid #bfdbfe;background:#eff6ff;color:#1d4ed8;border-radius:999px;padding:3px 9px;font-size:10px;font-family:var(--mono)}
+@media(max-width:1050px){.tg-hero{grid-template-columns:1fr}.tg-steps,.tg-switch-row{grid-template-columns:1fr 1fr}}
+@media(max-width:680px){.tg-form-grid,.tg-steps,.tg-switch-row{grid-template-columns:1fr}.tg-card{padding:13px}.tg-code,.tg-preview{font-size:10px}}
+
 </style>
 </head>
 <body>
@@ -843,6 +870,7 @@ input,select,textarea,button{font-family:var(--font)}
   <div class="sb-div"></div>
   <div class="sb-sec">任務計畫</div>
   <div class="sb-item" id="sb-planner" onclick="gotoView('planner')"><span class="sb-ic">✓</span>任務看板<span class="sb-badge" id="sb-task-n">0</span></div>
+  <div class="sb-item" id="sb-telegram" onclick="gotoView('telegram')"><span class="sb-ic">✈</span>Telegram 提醒</div>
   <div class="sb-div"></div>
   <div class="sb-sec">快速篩選</div>
   <div class="sb-item" onclick="quickF('risk','High')"><span class="sb-ic" style="color:var(--red)">⚠</span>High Risk<span class="sb-badge r" id="sb-rn">0</span></div>
@@ -943,6 +971,9 @@ input,select,textarea,button{font-family:var(--font)}
       <div class="planner-panel" id="pp-year"></div>
       <div class="planner-panel" id="pp-tasks"></div>
     </div>
+
+    <!-- TELEGRAM DAILY PUSH -->
+    <div class="panel" id="panel-telegram"></div>
 
     <!-- DETAIL -->
     <div class="panel" id="panel-detail">
@@ -1240,7 +1271,7 @@ const SK='egret_v3_proj',SK_CFG='egret_v3_cfg',SK_FX='egret_v3_fx',SK_TASKS='egr
 const SK_PHASES='egret_v4_phases'; // phase history
 const SK_AUDIT='egret_v5_audit',SK_FILES='egret_v5_files';
 const SK_ORDERS='egret_v15_orders',SK_SHIPMENTS='egret_v15_shipments',SK_PAYMENTS='egret_v15_payments';
-const SK_QUOTES='egret_v19_quotes',SK_SAMPLES='egret_v19_samples',SK_CONFLICTS='egret_v19_conflicts';
+const SK_QUOTES='egret_v19_quotes',SK_SAMPLES='egret_v19_samples',SK_CONFLICTS='egret_v19_conflicts',SK_TG='egret_v20_telegram';
 let projects=[],tasks=[],orders=[],shipments=[],payments=[],quoteRecords=[],sampleRecords=[],cfg={
   categories:['M12 Cable','M12 Connector','M23','RF Cable','Waterproof USB','M12 Hub','未分類'],
   phases:['RFQ','規格確認','成本確認','報價','樣品','客戶測試','等回覆','成案/失案'],
@@ -1267,6 +1298,7 @@ const AUDIT_KEEP_LIMIT=150;
 const AUDIT_RECENT_UI_LIMIT=20;
 const AUDIT_PROJECT_UI_LIMIT=30;
 let projectFiles={};
+let telegramSettings={enabled:false,botToken:'',chatId:'6531810701',sendTime:'08:30',timezone:'Asia/Taipei',maxItems:8,includeHigh:true,includeToday:true,includeMedium:true,includeInfo:false,includeOverdueReceivable:true,includeTasks:true,lastAutoSent:''};
 let currentUploadProjectId=null;
 let conflictLogs=[];
 let editingProjectOpenedRev=null;
@@ -1326,6 +1358,7 @@ function load(){
     const ss=localStorage.getItem(SK_SHIPMENTS); if(ss) shipments=JSON.parse(ss); else shipments=sampleShipments();
     const pp=localStorage.getItem(SK_PAYMENTS); if(pp) payments=JSON.parse(pp); else payments=samplePayments();
     const qq=localStorage.getItem(SK_QUOTES); if(qq) quoteRecords=JSON.parse(qq);
+    const tg=localStorage.getItem(SK_TG); if(tg) telegramSettings={...telegramSettings,...JSON.parse(tg)};
     const sr=localStorage.getItem(SK_SAMPLES); if(sr) sampleRecords=JSON.parse(sr);
     const cf=localStorage.getItem(SK_CONFLICTS); if(cf) conflictLogs=JSON.parse(cf);
   }catch(e){projects=sampleProjects();tasks=sampleTasks();orders=sampleOrders();shipments=sampleShipments();payments=samplePayments();auditLogs=[];projectFiles={};}
@@ -2320,6 +2353,7 @@ function renderCurrent(){
   else if(v==='shipments')renderShipmentsPanel();
   else if(v==='payments')renderPaymentsPanel();
   else if(v==='planner')renderPlanner();
+  else if(v==='telegram')renderTelegramPanel();
 }
 function quickF(f,v){quickFilter={f,v};gotoView('list',true);}
 function backFromDetail(){gotoView(prevView||'dashboard');}
@@ -4577,6 +4611,248 @@ makePCard=function(p){
 };
 
 
+
+
+// ── v20: TELEGRAM DAILY PUSH CENTER ──────────────────────────────────────────
+function tgCfg(){return {...telegramSettings};}
+function persistTelegram(){
+  try{localStorage.setItem(SK_TG,JSON.stringify(telegramSettings));}catch(e){}
+}
+function tgReadSettingsFromDOM(){
+  telegramSettings={
+    ...telegramSettings,
+    enabled:!!document.getElementById('tg-enabled')?.checked,
+    botToken:(document.getElementById('tg-token')?.value||'').trim(),
+    chatId:(document.getElementById('tg-chatid')?.value||'').trim(),
+    sendTime:document.getElementById('tg-time')?.value||'08:30',
+    timezone:document.getElementById('tg-tz')?.value||'Asia/Taipei',
+    maxItems:Math.max(1,Math.min(20,+document.getElementById('tg-max')?.value||8)),
+    includeHigh:!!document.getElementById('tg-high')?.checked,
+    includeToday:!!document.getElementById('tg-today')?.checked,
+    includeMedium:!!document.getElementById('tg-medium')?.checked,
+    includeInfo:!!document.getElementById('tg-info')?.checked,
+    includeOverdueReceivable:!!document.getElementById('tg-receivable')?.checked,
+    includeTasks:!!document.getElementById('tg-tasks')?.checked
+  };
+}
+function tgLevelName(level){
+  return level==='high'?'🚨 高風險':level==='today'?'📌 今日':level==='medium'?'⏳ 近期':'ℹ️ 補資料';
+}
+function tgProjectLine(it,idx){
+  const p=it.project||{};
+  const nf=p.nextFollowUp?`｜追蹤 ${p.nextFollowUp}`:'';
+  const prob=(+p.probability||0)>0?`｜機率 ${p.probability}%`:'';
+  return `${idx}. ${tgLevelName(it.level)}｜${p.name||'未命名案件'}\n   ${it.type}：${it.text}${nf}${prob}\n   客戶：${p.customer||'未填'}｜狀態：${statusName(normalizeProjectStatus(p.status||p.phase))}`;
+}
+function tgReceivableLines(startIdx){
+  if(!telegramSettings.includeOverdueReceivable) return [];
+  try{
+    return signedReceivableReminders().slice(0,5).map((r,i)=>{
+      const s=r.shipment||{}, o=r.order||{};
+      return `${startIdx+i}. 💰 簽收後收款｜${o.customer||projectNameById(s.projectId)||'未填客戶'}\n   ${r.overdue?'逾期/需建立帳款':'待確認帳款'}：${s.shipmentNo||'出貨紀錄'}｜NT$${(+r.totalDue||0).toLocaleString()}\n   日期：${r.dueDate||'未填'}`;
+    });
+  }catch(e){return [];}
+}
+function tgTaskLines(startIdx){
+  if(!telegramSettings.includeTasks) return [];
+  try{
+    const open=(tasks||[]).filter(t=>t.status!=='已完成').map(t=>({...t,du:daysUntil(t.dueDate)})).filter(t=>t.dueDate && t.du!==null && t.du<=2).sort((a,b)=>(a.du-b.du));
+    return open.slice(0,5).map((t,i)=>`${startIdx+i}. ✅ 任務｜${t.name||t.title||'未命名任務'}\n   ${t.du<0?'逾期 '+Math.abs(t.du)+' 天':t.du===0?'今天到期':'D-'+t.du}｜${t.projectId?projectNameById(t.projectId):'一般任務'}`);
+  }catch(e){return [];}
+}
+function buildTelegramDailyText(){
+  const cfg=tgCfg();
+  const levels=[];
+  if(cfg.includeHigh)levels.push('high');
+  if(cfg.includeToday)levels.push('today');
+  if(cfg.includeMedium)levels.push('medium');
+  if(cfg.includeInfo)levels.push('info');
+  let items=getStep9ReminderItems().filter(it=>levels.includes(it.level)).slice(0,cfg.maxItems);
+  const d=new Date();
+  const dateStr=d.toLocaleDateString('zh-TW',{timeZone:cfg.timezone||'Asia/Taipei',year:'numeric',month:'2-digit',day:'2-digit',weekday:'short'});
+  const high=getStep9ReminderItems().filter(x=>x.level==='high').length;
+  const todayN=getStep9ReminderItems().filter(x=>x.level==='today').length;
+  const medium=getStep9ReminderItems().filter(x=>x.level==='medium').length;
+  const info=getStep9ReminderItems().filter(x=>x.level==='info').length;
+  const lines=[];
+  lines.push(`📊 EGRET Daily Follow-up｜${dateStr}`);
+  lines.push(`高風險 ${high}｜今日 ${todayN}｜近期 ${medium}｜補資料 ${info}`);
+  lines.push('');
+  if(items.length){
+    lines.push('【新案 / 客戶追蹤】');
+    items.forEach((it,i)=>lines.push(tgProjectLine(it,i+1)));
+  }else{
+    lines.push('【新案 / 客戶追蹤】');
+    lines.push('目前沒有符合條件的追蹤提醒。');
+  }
+  const rec=tgReceivableLines(items.length+1);
+  if(rec.length){lines.push('');lines.push('【出貨 / 帳款提醒】');lines.push(...rec);}
+  const taskStart=items.length+rec.length+1;
+  const task=tgTaskLines(taskStart);
+  if(task.length){lines.push('');lines.push('【任務提醒】');lines.push(...task);}
+  lines.push('');
+  lines.push('— From EGRET Project Hub');
+  return lines.join('\n');
+}
+function tgCloudFunctionCode(){
+  return `// Firebase Cloud Functions v2 + Telegram Bot
+// 用途：每天固定時間把 EGRET /data 裡的提醒推到 Telegram
+// 先安裝：npm i firebase-functions firebase-admin
+// 環境變數：firebase functions:secrets:set TELEGRAM_BOT_TOKEN
+// chatId 可直接寫在程式或放 functions config / Firestore
+
+const {onSchedule} = require("firebase-functions/v2/scheduler");
+const {defineSecret} = require("firebase-functions/params");
+const admin = require("firebase-admin");
+admin.initializeApp();
+
+const TELEGRAM_BOT_TOKEN = defineSecret("TELEGRAM_BOT_TOKEN");
+const CHAT_ID = "${(telegramSettings.chatId||'請填入你的 chat_id').replace(/"/g,'\\"')}";
+
+exports.egretDailyTelegram = onSchedule({
+  schedule: "every day ${telegramSettings.sendTime||'08:30'}",
+  timeZone: "${telegramSettings.timezone||'Asia/Taipei'}",
+  secrets: [TELEGRAM_BOT_TOKEN]
+}, async () => {
+  const snap = await admin.database().ref("egret/data").get();
+  const data = snap.val() || {};
+  const projects = data.projects || [];
+  const today = new Date().toISOString().slice(0,10);
+
+  const active = ["rfq","spec","cost","quote","sample","testing","waiting"];
+  const daysUntil = (d) => d ? Math.ceil((new Date(d.slice(0,10)) - new Date(today)) / 86400000) : null;
+  const statusName = (s) => ({rfq:"新詢價",spec:"規格確認",cost:"成本確認",quote:"已報價",sample:"樣品中",testing:"客戶測試",waiting:"等回覆"})[s] || s || "未填";
+
+  const reminders = [];
+  for (const p of projects) {
+    const st = p.status || p.phase || "";
+    if (!active.includes(st)) continue;
+    const nf = daysUntil(p.nextFollowUp);
+    if (!p.nextFollowUp) reminders.push({level:"補資料",p,text:"未設定下次追蹤日"});
+    else if (nf < 0) reminders.push({level:"逾期",p,text:"追蹤日已過 " + Math.abs(nf) + " 天"});
+    else if (nf === 0) reminders.push({level:"今日",p,text:"今天需要追蹤"});
+    else if (nf <= 2) reminders.push({level:"近期",p,text:nf + " 天後要追蹤"});
+  }
+
+  reminders.sort((a,b)=>["逾期","今日","近期","補資料"].indexOf(a.level)-["逾期","今日","近期","補資料"].indexOf(b.level));
+  const top = reminders.slice(0, ${Math.max(1,Math.min(20,+telegramSettings.maxItems||8))});
+  const body = [
+    "📊 EGRET Daily Follow-up｜" + today,
+    "提醒數：" + reminders.length,
+    "",
+    ...top.map((r,i)=>(i+1)+". " + r.level + "｜" + (r.p.name || "未命名案件") + "\\n   " + r.text + "｜客戶：" + (r.p.customer || "未填") + "｜狀態：" + statusName(r.p.status || r.p.phase)),
+    "",
+    "— From EGRET Project Hub"
+  ].join("\\n");
+
+  const url = "https://api.telegram.org/bot" + TELEGRAM_BOT_TOKEN.value() + "/sendMessage";
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({chat_id: CHAT_ID, text: body})
+  });
+  if (!res.ok) throw new Error(await res.text());
+});`;
+}
+function renderTelegramPanel(){
+  const s=tgCfg();
+  const preview=buildTelegramDailyText();
+  const code=tgCloudFunctionCode();
+  const panel=document.getElementById('panel-telegram'); if(!panel)return;
+  panel.innerHTML=`<div class="sec-hdr"><div class="sec-title">Telegram 每日提醒</div><span class="tg-pill">MVP 免費方案</span></div>
+  <div class="tg-hero">
+    <div class="tg-card soft-blue">
+      <div class="tg-title">✈ Telegram Bot 設定 <small>本機儲存</small></div>
+      <div class="tg-form-grid">
+        <div class="fg"><label class="flabel">Bot Token</label><input class="finp" id="tg-token" value="${esc(s.botToken||'')}" placeholder="123456:ABC..." type="password"></div>
+        <div class="fg"><label class="flabel">Chat ID</label><input class="finp" id="tg-chatid" value="${esc(s.chatId||'')}" placeholder="例如 123456789"></div>
+        <div class="fg"><label class="flabel">推送時間</label><input class="finp" id="tg-time" value="${esc(s.sendTime||'08:30')}" type="time"></div>
+        <div class="fg"><label class="flabel">時區</label><input class="finp" id="tg-tz" value="${esc(s.timezone||'Asia/Taipei')}" placeholder="Asia/Taipei"></div>
+        <div class="fg"><label class="flabel">每次最多專案提醒</label><input class="finp" id="tg-max" value="${esc(s.maxItems||8)}" type="number" min="1" max="20"></div>
+        <label class="tg-switch"><input id="tg-enabled" type="checkbox" ${s.enabled?'checked':''}><span><b>前端自動提醒</b><span>網頁開著時，到指定時間會自動傳一次。</span></span></label>
+      </div>
+      <div class="tg-switch-row">
+        <label class="tg-switch"><input id="tg-high" type="checkbox" ${s.includeHigh?'checked':''}><span><b>高風險</b><span>逾期追蹤、報價過期、樣品卡住。</span></span></label>
+        <label class="tg-switch"><input id="tg-today" type="checkbox" ${s.includeToday?'checked':''}><span><b>今日追蹤</b><span>今天到期的客戶或案件。</span></span></label>
+        <label class="tg-switch"><input id="tg-medium" type="checkbox" ${s.includeMedium?'checked':''}><span><b>近期提醒</b><span>2 天內要追蹤、久未更新。</span></span></label>
+        <label class="tg-switch"><input id="tg-info" type="checkbox" ${s.includeInfo?'checked':''}><span><b>補資料</b><span>沒有追蹤日、缺報價/樣品紀錄。</span></span></label>
+        <label class="tg-switch"><input id="tg-receivable" type="checkbox" ${s.includeOverdueReceivable?'checked':''}><span><b>帳款提醒</b><span>已簽收未收款、需建立帳款。</span></span></label>
+        <label class="tg-switch"><input id="tg-tasks" type="checkbox" ${s.includeTasks?'checked':''}><span><b>任務提醒</b><span>今天或 2 天內到期任務。</span></span></label>
+      </div>
+      <div class="tg-actions">
+        <button class="hbtn pri" onclick="saveTelegramSettings()">儲存設定</button>
+        <button class="hbtn" onclick="sendTelegramTest()">傳送測試</button>
+        <button class="hbtn" onclick="copyTelegramPreview()">複製今日訊息</button>
+        <button class="hbtn" onclick="renderTelegramPanel()">重新產生預覽</button>
+      </div>
+      <div class="tg-note">真正「每天自動、關掉電腦也會傳」需要 Firebase Cloud Functions + Scheduler。下面已幫妳產生可複製的後端程式碼。前端自動提醒只適合妳網頁一直開著時使用。</div>
+      <div class="tg-steps">
+        <div class="tg-step"><div class="num">1</div><div class="h">找 BotFather</div><div class="p">Telegram 搜尋 @BotFather，建立 bot 並拿 Token。</div></div>
+        <div class="tg-step"><div class="num">2</div><div class="h">取得 Chat ID</div><div class="p">傳訊息給 bot，再用 getUpdates 查自己的 chat_id。</div></div>
+        <div class="tg-step"><div class="num">3</div><div class="h">先測試</div><div class="p">在此頁輸入 Token / Chat ID，按傳送測試。</div></div>
+        <div class="tg-step"><div class="num">4</div><div class="h">上 Cloud</div><div class="p">穩定版用 Firebase Scheduler 每天自動送。</div></div>
+      </div>
+    </div>
+    <div class="tg-card soft-mint">
+      <div class="tg-title">📩 今日推送預覽 <small>${esc(s.timezone||'Asia/Taipei')}</small></div>
+      <div class="tg-preview" id="tg-preview">${esc(preview)}</div>
+    </div>
+  </div>
+  <div class="tg-card">
+    <div class="tg-title">☁ Firebase Cloud Function 範本 <small>真正定時推送用</small></div>
+    <div class="tg-actions" style="margin-top:0;margin-bottom:10px"><button class="hbtn" onclick="copyTelegramFunctionCode()">複製 Function 程式碼</button></div>
+    <div class="tg-code" id="tg-code">${esc(code)}</div>
+  </div>`;
+}
+function saveTelegramSettings(){
+  tgReadSettingsFromDOM();
+  persistTelegram();
+  toast('Telegram 設定已儲存','ok');
+  renderTelegramPanel();
+}
+function copyTextSafe(txt,msg='已複製'){
+  navigator.clipboard?.writeText(txt).then(()=>toast(msg,'ok')).catch(()=>{
+    const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();toast(msg,'ok');
+  });
+}
+function copyTelegramPreview(){tgReadSettingsFromDOM();copyTextSafe(buildTelegramDailyText(),'已複製今日 Telegram 訊息');}
+function copyTelegramFunctionCode(){tgReadSettingsFromDOM();copyTextSafe(tgCloudFunctionCode(),'已複製 Cloud Function 程式碼');}
+async function sendTelegramTest(){
+  tgReadSettingsFromDOM();
+  persistTelegram();
+  if(!telegramSettings.botToken||!telegramSettings.chatId) return toast('請先填 Bot Token 與 Chat ID','err');
+  const btnText=buildTelegramDailyText();
+  try{
+    const res=await fetch(`https://api.telegram.org/bot${telegramSettings.botToken}/sendMessage`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({chat_id:telegramSettings.chatId,text:btnText})
+    });
+    const data=await res.json().catch(()=>({}));
+    if(!res.ok||data.ok===false) throw new Error(data.description||('HTTP '+res.status));
+    toast('Telegram 測試訊息已送出','ok');
+  }catch(e){
+    console.warn(e);
+    toast('傳送失敗：'+(e.message||e),'err');
+  }
+}
+let tgAutoTimer=null;
+function startTelegramAutoTimer(){
+  if(tgAutoTimer)clearInterval(tgAutoTimer);
+  tgAutoTimer=setInterval(async ()=>{
+    if(!telegramSettings.enabled||!telegramSettings.botToken||!telegramSettings.chatId)return;
+    const now=new Date();
+    const hh=String(now.getHours()).padStart(2,'0'), mm=String(now.getMinutes()).padStart(2,'0');
+    const key=now.toISOString().slice(0,10)+' '+(telegramSettings.sendTime||'08:30');
+    if(`${hh}:${mm}`===(telegramSettings.sendTime||'08:30') && telegramSettings.lastAutoSent!==key){
+      telegramSettings.lastAutoSent=key; persistTelegram();
+      await sendTelegramTest();
+    }
+  },30000);
+}
+startTelegramAutoTimer();
+
+
 // ══════════════════════════════════════════════
 // v19 Hotfix: Quote / Sample History Functions
 // 修正：renderQuoteHistory / renderSampleHistory is not defined
@@ -4784,6 +5060,191 @@ function deleteSampleRecord(){
 }
 
 
+// ══════════════════════════════════════════════
+// v21: Telegram Auto Follow-up Enhancement
+// 加強：預設 Chat ID、客戶熱度分數、90天 Pipeline、今日優先追蹤 TOP3
+// ══════════════════════════════════════════════
+(function(){
+  const DEFAULT_TG_CHAT_ID='6531810701';
+  const TG_SCORE_LABEL={hot:'🔥 HOT',warm:'🌤 WARM',cold:'🥶 COLD'};
+  function v21Num(v){const n=Number(v||0);return isFinite(n)?n:0;}
+  function v21DateOnly(v){return v?String(v).slice(0,10):'';}
+  function v21DaysSince(v){
+    if(!v)return null;
+    const d=new Date(v21DateOnly(v)); if(isNaN(d))return null;
+    const t=new Date(today());
+    return Math.floor((t-d)/86400000);
+  }
+  function v21LatestQuoteForProject(pid){
+    try{return (quoteRecords||[]).filter(q=>q.projectId===pid).sort((a,b)=>String(b.quoteDate||b.createdAt||'').localeCompare(String(a.quoteDate||a.createdAt||'')))[0]||null;}catch(e){return null;}
+  }
+  function v21LatestSampleForProject(pid){
+    try{return (sampleRecords||[]).filter(s=>s.projectId===pid).sort((a,b)=>String(b.shipDate||b.requestDate||b.createdAt||'').localeCompare(String(a.shipDate||a.requestDate||a.createdAt||'')))[0]||null;}catch(e){return null;}
+  }
+  window.v21ProjectHeatScore=function(p){
+    const st=normalizeProjectStatus(p.status||p.phase);
+    const prob=v21Num(p.probability)||pipelineDefaultProb(st);
+    const nf=daysUntil(p.nextFollowUp);
+    const last=v21DaysSince(p.lastContactDate||p.updatedAt||p.createdAt||p.start);
+    const q=v21LatestQuoteForProject(p.id), sp=v21LatestSampleForProject(p.id);
+    let score=0;
+    score+=Math.min(35, prob*0.35);
+    if(['quote','sample','testing','waiting'].includes(st))score+=20;
+    if(nf!==null){ if(nf<0)score+=25; else if(nf===0)score+=22; else if(nf<=2)score+=16; else if(nf<=7)score+=8; }
+    else score+=10;
+    if(q)score+=12;
+    if(sp)score+=12;
+    if(last!==null){ if(last<=3)score+=8; else if(last<=14)score+=4; else if(last>=30)score-=8; }
+    score=Math.max(0,Math.min(100,Math.round(score)));
+    const label=score>=75?TG_SCORE_LABEL.hot:score>=45?TG_SCORE_LABEL.warm:TG_SCORE_LABEL.cold;
+    return {score,label};
+  };
+  window.v21WeightedValueTWD=function(p){
+    const f=typeof calcProj==='function'?calcProj(p):{};
+    const revenue=v21Num(f.totalRevTWD)||v21Num(p.amountTWD)||v21Num(p.amount)||0;
+    const st=normalizeProjectStatus(p.status||p.phase);
+    const prob=(v21Num(p.probability)||pipelineDefaultProb(st))/100;
+    return revenue*prob;
+  };
+  window.v21PipelineSummary=function(){
+    const active=(projects||[]).filter(p=>ACTIVE_PIPELINE_STATUSES.includes(normalizeProjectStatus(p.status||p.phase)));
+    const weighted=active.reduce((sum,p)=>sum+v21WeightedValueTWD(p),0);
+    const raw=active.reduce((sum,p)=>{const f=typeof calcProj==='function'?calcProj(p):{};return sum+(v21Num(f.totalRevTWD)||v21Num(p.amountTWD)||v21Num(p.amount)||0);},0);
+    return {activeCount:active.length,weighted,raw};
+  };
+  window.v21TopFollowups=function(limit=3){
+    const seen=new Set();
+    const items=(typeof getStep9ReminderItems==='function'?getStep9ReminderItems():[])
+      .filter(it=>it&&it.project)
+      .map(it=>({...it,heat:v21ProjectHeatScore(it.project),weighted:v21WeightedValueTWD(it.project)}))
+      .sort((a,b)=>{
+        const lv={high:0,today:1,medium:2,info:3};
+        return (lv[a.level]-lv[b.level]) || (b.heat.score-a.heat.score) || (b.weighted-a.weighted);
+      })
+      .filter(it=>{if(seen.has(it.project.id))return false;seen.add(it.project.id);return true;});
+    return items.slice(0,limit);
+  };
+
+  const oldBuild=window.buildTelegramDailyText;
+  window.buildTelegramDailyText=function(){
+    const cfg=tgCfg?tqSafeCfg():{timezone:'Asia/Taipei',maxItems:8};
+    const d=new Date();
+    const dateStr=d.toLocaleDateString('zh-TW',{timeZone:cfg.timezone||'Asia/Taipei',year:'numeric',month:'2-digit',day:'2-digit',weekday:'short'});
+    const all=typeof getStep9ReminderItems==='function'?getStep9ReminderItems():[];
+    const high=all.filter(x=>x.level==='high').length;
+    const todayN=all.filter(x=>x.level==='today').length;
+    const medium=all.filter(x=>x.level==='medium').length;
+    const info=all.filter(x=>x.level==='info').length;
+    const pipe=v21PipelineSummary();
+    const levels=[];
+    if(telegramSettings.includeHigh)levels.push('high');
+    if(telegramSettings.includeToday)levels.push('today');
+    if(telegramSettings.includeMedium)levels.push('medium');
+    if(telegramSettings.includeInfo)levels.push('info');
+    const items=all.filter(it=>levels.includes(it.level)).slice(0,Math.max(1,Math.min(20,+telegramSettings.maxItems||8)));
+    const lines=[];
+    lines.push(`📊 EGRET Daily Follow-up｜${dateStr}`);
+    lines.push(`高風險 ${high}｜今日 ${todayN}｜近期 ${medium}｜補資料 ${info}`);
+    lines.push(`90天 Pipeline：${shortMoney(pipe.weighted)} 加權｜${pipe.activeCount} 件進行中`);
+    lines.push('');
+    const top=v21TopFollowups(3);
+    if(top.length){
+      lines.push('【今日最優先追蹤 TOP 3】');
+      top.forEach((it,i)=>{
+        const p=it.project, h=it.heat;
+        lines.push(`${i+1}. ${h.label} ${h.score}｜${p.name||'未命名案件'}`);
+        lines.push(`   ${it.type}：${it.text}｜客戶：${p.customer||'未填'}｜狀態：${statusName(normalizeProjectStatus(p.status||p.phase))}`);
+      });
+      lines.push('');
+    }
+    lines.push('【新案 / 客戶追蹤】');
+    if(items.length){
+      items.forEach((it,i)=>{
+        const p=it.project||{}, h=v21ProjectHeatScore(p), w=v21WeightedValueTWD(p);
+        const nf=p.nextFollowUp?`｜追蹤 ${p.nextFollowUp}`:'';
+        const prob=(+p.probability||0)>0?`｜機率 ${p.probability}%`:'';
+        lines.push(`${i+1}. ${tgLevelName(it.level)}｜${h.label} ${h.score}｜${p.name||'未命名案件'}`);
+        lines.push(`   ${it.type}：${it.text}${nf}${prob}｜加權 ${shortMoney(w)}`);
+        lines.push(`   客戶：${p.customer||'未填'}｜狀態：${statusName(normalizeProjectStatus(p.status||p.phase))}`);
+      });
+    }else lines.push('目前沒有符合條件的追蹤提醒。');
+    const rec=tgReceivableLines?tgReceivableLines(items.length+1):[];
+    if(rec.length){lines.push('');lines.push('【出貨 / 帳款提醒】');lines.push(...rec);}
+    const task=tgTaskLines?tgTaskLines(items.length+rec.length+1):[];
+    if(task.length){lines.push('');lines.push('【任務提醒】');lines.push(...task);}
+    lines.push('');
+    lines.push('— From EGRET Project Hub');
+    return lines.join('\n');
+  };
+  function tqSafeCfg(){try{return tgCfg();}catch(e){return telegramSettings||{};}}
+
+  const oldSave=window.saveTelegramSettings;
+  window.saveTelegramSettings=function(){
+    if(typeof tgReadSettingsFromDOM==='function') tgReadSettingsFromDOM();
+    if(!telegramSettings.chatId) telegramSettings.chatId=DEFAULT_TG_CHAT_ID;
+    if(typeof persistTelegram==='function') persistTelegram();
+    toast('Telegram 設定已儲存','ok');
+    if(typeof renderTelegramPanel==='function') renderTelegramPanel();
+  };
+  const oldSend=window.sendTelegramTest;
+  window.sendTelegramTest=async function(){
+    if(typeof tgReadSettingsFromDOM==='function') tgReadSettingsFromDOM();
+    if(!telegramSettings.chatId) telegramSettings.chatId=DEFAULT_TG_CHAT_ID;
+    if(typeof persistTelegram==='function') persistTelegram();
+    if(!telegramSettings.botToken)return toast('請先填 Bot Token','err');
+    try{
+      const res=await fetch(`https://api.telegram.org/bot${telegramSettings.botToken}/sendMessage`,{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({chat_id:telegramSettings.chatId,text:buildTelegramDailyText()})
+      });
+      const data=await res.json().catch(()=>({}));
+      if(!res.ok||data.ok===false) throw new Error(data.description||('HTTP '+res.status));
+      toast('Telegram 測試訊息已送出','ok');
+    }catch(e){toast('傳送失敗：'+(e.message||e),'err');}
+  };
+
+  const oldRenderPanel=window.renderTelegramPanel;
+  window.renderTelegramPanel=function(){
+    if(!telegramSettings.chatId) telegramSettings.chatId=DEFAULT_TG_CHAT_ID;
+    oldRenderPanel&&oldRenderPanel();
+    const panel=document.getElementById('panel-telegram');
+    if(!panel)return;
+    const chat=document.getElementById('tg-chatid'); if(chat&&!chat.value)chat.value=DEFAULT_TG_CHAT_ID;
+    const card=document.createElement('div');
+    card.className='tg-card soft-peach';
+    const pipe=v21PipelineSummary();
+    const top=v21TopFollowups(5).map((it,i)=>`<div class="home-line"><div><div class="l1">${i+1}. ${esc(it.heat.label)} ${it.heat.score}｜${esc(it.project.name||'未命名案件')}</div><div class="l2">${esc(it.type)}：${esc(it.text)}｜${esc(it.project.customer||'未填客戶')}</div></div><div class="rv">${shortMoney(it.weighted)}</div></div>`).join('')||'<div class="history-empty">目前沒有優先追蹤案件</div>';
+    card.innerHTML=`<div class="tg-title">🔥 V21 業務優先追蹤 <small>自動排序</small></div>
+      <div class="soft-stat-grid" style="margin-bottom:12px">
+        <div class="soft-stat"><div class="sl">加權 Pipeline</div><div class="sv">${shortMoney(pipe.weighted)}</div></div>
+        <div class="soft-stat"><div class="sl">進行中案件</div><div class="sv">${pipe.activeCount}</div></div>
+      </div>
+      <div class="home-list-plain">${top}</div>`;
+    panel.appendChild(card);
+  };
+
+  const oldPCard=window.makePCard;
+  if(oldPCard){
+    window.makePCard=function(p){
+      let html=oldPCard(p);
+      const h=v21ProjectHeatScore(p);
+      const badge=`<span class="step9-card-badge" title="Customer Heat Score">${esc(h.label)} ${h.score}</span>`;
+      if(html.includes('<div class="pc-chips">')) html=html.replace('<div class="pc-chips">',`<div class="pc-chips">${badge}`);
+      return html;
+    };
+  }
+
+  setTimeout(()=>{
+    try{
+      if(!telegramSettings.chatId){telegramSettings.chatId=DEFAULT_TG_CHAT_ID; persistTelegram&&persistTelegram();}
+      updateMobileBottomNav&&updateMobileBottomNav();
+      if(currentView==='telegram')renderTelegramPanel();
+      if(currentView==='dashboard')renderCurrent&&renderCurrent();
+    }catch(e){console.warn('v21 init skipped',e);}
+  },120);
+})();
+
+
 // ── INIT ──────────────────────────────────────────────────────────────────────
 load();updateUserDisplay();loadFX();gotoView('dashboard');
 setInterval(loadFX,30*60*1000);
@@ -4819,7 +5280,147 @@ function updateMobileBottomNav(){
   <button class="mbn-item" data-view="list" onclick="gotoView('list')"><b>☰</b><span>列表</span></button>
   <button class="mbn-item" data-view="planner" onclick="gotoView('planner')"><b>✓</b><span>任務</span></button>
   <button class="mbn-item" data-view="analytics" onclick="gotoView('analytics')"><b>⬧</b><span>分析</span></button>
+  <button class="mbn-item" data-view="telegram" onclick="gotoView('telegram')"><b>✈</b><span>提醒</span></button>
 </nav>
+
+
+
+<script>
+/* ── V21 HOTFIX: Telegram page robust renderer ── */
+(function(){
+  const DEFAULT_TG_CHAT_ID_FIX = '6531810701';
+  function e(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+  function getStore(){
+    try{return JSON.parse(localStorage.getItem('egret_telegram_settings')||localStorage.getItem('telegramSettings')||'{}')||{};}catch(err){return {};}
+  }
+  function setStore(cfg){
+    localStorage.setItem('egret_telegram_settings', JSON.stringify(cfg));
+    try{ window.telegramSettings = Object.assign(window.telegramSettings||{}, cfg); }catch(err){}
+  }
+  function money(v){
+    const n=Number(v||0); if(!isFinite(n)||n<=0)return 'USD 0';
+    if(n>=1000000)return 'USD '+(n/1000000).toFixed(1)+'M';
+    if(n>=1000)return 'USD '+Math.round(n/1000)+'K';
+    return 'USD '+Math.round(n);
+  }
+  function daysSinceFix(d){
+    if(!d)return 999;
+    const dt=new Date(d); if(isNaN(dt))return 999;
+    return Math.floor((new Date()-dt)/(86400000));
+  }
+  function getProjectsFix(){return Array.isArray(window.projects)?window.projects:[];}
+  function activeProjectFix(p){
+    const st=String(p.status||'').toLowerCase();
+    return !['won','lost','成案','失案','close','closed'].includes(st);
+  }
+  function calcFollowups(){
+    const ps=getProjectsFix().filter(activeProjectFix);
+    const rows=[];
+    ps.forEach(p=>{
+      const name=p.name||p.projectName||p.customer||'未命名案件';
+      const customer=p.customer||p.company||p.client||'';
+      const last=p.lastContact||p.lastContactDate||p.followDate||p.updatedAt||p.start;
+      const next=p.nextFollowUp||p.nextFollowup||p.nextDate||p.dueDate;
+      const quote=p.quoteDate||p.lastQuoteDate||p.quotedAt;
+      const sample=p.sampleDate||p.sampleSentDate||p.shipSampleDate;
+      const value=Number(p.amount||p.value||p.pipeline||p.estimatedRevenue||p.quoteAmount||0);
+      const prob=Number(p.probability||p.winRate||p.chance||50)/100;
+      const dLast=daysSinceFix(last), dNext=next?Math.ceil((new Date(next)-new Date())/86400000):null;
+      let score=0, reason=[];
+      if(dNext!==null && dNext<=0){score+=45;reason.push('今日/逾期追蹤');}
+      if(dLast>=30){score+=40;reason.push(`${dLast}天未聯絡`);} else if(dLast>=14){score+=28;reason.push(`${dLast}天未聯絡`);} else if(dLast>=7){score+=15;reason.push(`${dLast}天未聯絡`);}
+      const dq=daysSinceFix(quote); if(dq===14||dq>=30){score+=22;reason.push(`報價後${dq}天`);} else if(dq>=5&&dq<14){score+=10;reason.push(`報價後${dq}天`);}
+      const ds=daysSinceFix(sample); if(ds===7||ds>=14){score+=22;reason.push(`樣品後${ds}天`);} else if(ds>=3&&ds<7){score+=10;reason.push(`樣品後${ds}天`);}
+      if(String(p.priority||'').toLowerCase()==='high'||p.priority==='High'){score+=12;reason.push('High Priority');}
+      const weighted=value*(isFinite(prob)?prob:.5);
+      rows.push({p,name,customer,score,reason:reason.join(' / ')||'可例行追蹤',weighted,lastDays:dLast});
+    });
+    return rows.sort((a,b)=>b.score-a.score || b.weighted-a.weighted).slice(0,12);
+  }
+  function dailyTextFix(){
+    const cfg=getStore();
+    const rows=calcFollowups();
+    const top=rows.slice(0, Number(cfg.maxItems||8));
+    const pipe=rows.reduce((s,r)=>s+r.weighted,0);
+    const today=new Date().toLocaleDateString('zh-TW',{month:'2-digit',day:'2-digit',weekday:'short'});
+    return `📊 EGRET Daily Report｜${today}\n\n今日優先追蹤：${top.length} 筆\n90天加權 Pipeline：${money(pipe)}\n\n${top.map((r,i)=>`${i+1}. ${r.score>=70?'🔥':r.score>=40?'⚠️':'•'} ${r.name}\n   ${r.customer?`客戶：${r.customer}\n   `:''}${r.reason}\n   加權商機：${money(r.weighted)}`).join('\n\n') || '今天沒有需要特別提醒的追蹤。'}\n\n— EGRET Project Hub`;
+  }
+  function renderTelegramPanelFixed(){
+    const panel=document.getElementById('panel-telegram');
+    if(!panel)return;
+    const cfg=Object.assign({chatId:DEFAULT_TG_CHAT_ID_FIX,sendTime:'08:30',timezone:'Asia/Taipei',maxItems:8,enabled:false},getStore());
+    const rows=calcFollowups();
+    const pipe=rows.reduce((s,r)=>s+r.weighted,0);
+    const topHtml=rows.slice(0,5).map((r,i)=>`<div class="home-line"><div><div class="l1">${i+1}. ${r.score>=70?'🔥':r.score>=40?'⚠️':'•'} ${e(r.name)}</div><div class="l2">${e(r.reason)}${r.customer?'｜'+e(r.customer):''}</div></div><div class="rv">${money(r.weighted)}</div></div>`).join('') || '<div class="history-empty">目前沒有優先追蹤案件</div>';
+    panel.innerHTML=`
+      <div class="sec-hdr"><div class="sec-title">Telegram 每日提醒</div><span class="tg-pill">V21 FIXED</span></div>
+      <div class="tg-hero">
+        <div class="tg-card soft-blue">
+          <div class="tg-title">✈ Telegram Bot 設定 <small>Chat ID 已預填</small></div>
+          <div class="tg-form-grid">
+            <div class="fg"><label class="flabel">Bot Token</label><input class="finp" id="tg-token" value="${e(cfg.botToken||'')}" placeholder="8808...:AA..." type="password"></div>
+            <div class="fg"><label class="flabel">Chat ID</label><input class="finp" id="tg-chatid" value="${e(cfg.chatId||DEFAULT_TG_CHAT_ID_FIX)}"></div>
+            <div class="fg"><label class="flabel">推送時間</label><input class="finp" id="tg-time" value="${e(cfg.sendTime||'08:30')}" type="time"></div>
+            <div class="fg"><label class="flabel">時區</label><input class="finp" id="tg-tz" value="${e(cfg.timezone||'Asia/Taipei')}"></div>
+            <div class="fg"><label class="flabel">最多提醒筆數</label><input class="finp" id="tg-max" value="${e(cfg.maxItems||8)}" type="number" min="1" max="20"></div>
+            <label class="tg-switch"><input id="tg-enabled" type="checkbox" ${cfg.enabled?'checked':''}><span><b>前端自動提醒</b><span>網頁開著時，到指定時間傳一次。</span></span></label>
+          </div>
+          <div class="tg-actions">
+            <button class="hbtn pri" onclick="saveTelegramSettings()">儲存設定</button>
+            <button class="hbtn" onclick="sendTelegramTest()">傳送測試</button>
+            <button class="hbtn" onclick="copyTelegramPreview()">複製今日訊息</button>
+            <button class="hbtn" onclick="renderTelegramPanel()">重新產生預覽</button>
+          </div>
+          <div class="tg-note">如果只開 HTML，只有「按測試」或「網頁開著時」能發送。要關掉電腦也每天 08:30 自動發，需要再接 Firebase Cloud Functions / Scheduler。</div>
+        </div>
+        <div class="tg-card soft-mint">
+          <div class="tg-title">📩 今日推送預覽 <small>${e(cfg.timezone||'Asia/Taipei')}</small></div>
+          <div class="tg-preview" id="tg-preview">${e(dailyTextFix())}</div>
+        </div>
+      </div>
+      <div class="tg-card soft-peach">
+        <div class="tg-title">🔥 今日優先追蹤 TOP 5 <small>自動排序</small></div>
+        <div class="soft-stat-grid" style="margin-bottom:12px">
+          <div class="soft-stat"><div class="sl">加權 Pipeline</div><div class="sv">${money(pipe)}</div></div>
+          <div class="soft-stat"><div class="sl">進行中案件</div><div class="sv">${getProjectsFix().filter(activeProjectFix).length}</div></div>
+        </div>
+        <div class="home-list-plain">${topHtml}</div>
+      </div>`;
+  }
+  window.renderTelegramPanel=renderTelegramPanelFixed;
+  window.saveTelegramSettings=function(){
+    const cfg={
+      botToken:document.getElementById('tg-token')?.value.trim()||'',
+      chatId:document.getElementById('tg-chatid')?.value.trim()||DEFAULT_TG_CHAT_ID_FIX,
+      sendTime:document.getElementById('tg-time')?.value||'08:30',
+      timezone:document.getElementById('tg-tz')?.value.trim()||'Asia/Taipei',
+      maxItems:Number(document.getElementById('tg-max')?.value||8),
+      enabled:!!document.getElementById('tg-enabled')?.checked
+    };
+    setStore(cfg);
+    if(typeof toast==='function')toast('Telegram 設定已儲存','ok');
+    renderTelegramPanelFixed();
+  };
+  window.copyTelegramPreview=function(){
+    window.saveTelegramSettings();
+    const txt=dailyTextFix();
+    if(navigator.clipboard)navigator.clipboard.writeText(txt).then(()=>typeof toast==='function'&&toast('已複製今日訊息','ok'));
+  };
+  window.sendTelegramTest=async function(){
+    window.saveTelegramSettings();
+    const cfg=getStore();
+    if(!cfg.botToken)return typeof toast==='function'?toast('請先填 Bot Token','err'):alert('請先填 Bot Token');
+    try{
+      const res=await fetch(`https://api.telegram.org/bot${cfg.botToken}/sendMessage`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:cfg.chatId,text:dailyTextFix()})});
+      const data=await res.json().catch(()=>({}));
+      if(!res.ok||data.ok===false)throw new Error(data.description||('HTTP '+res.status));
+      if(typeof toast==='function')toast('Telegram 測試訊息已送出','ok'); else alert('Telegram 測試訊息已送出');
+    }catch(err){ if(typeof toast==='function')toast('傳送失敗：'+(err.message||err),'err'); else alert('傳送失敗：'+(err.message||err)); }
+  };
+  // 若使用者已停在空白 Telegram 頁，載入後自動補畫
+  setTimeout(()=>{const p=document.getElementById('panel-telegram'); if(p&&p.classList.contains('active')&&!p.innerHTML.trim())renderTelegramPanelFixed();},300);
+})();
+</script>
 
 </body>
 </html>
