@@ -13,5 +13,5 @@ jobs:
     steps:
       - name: Call Firebase to Send Saved Message
         run: |
-          curl -s -X POST "https://YOUR_FIREBASE_REGION-YOUR_PROJECT_ID.cloudfunctions.net/checkTelegramSchedule" \
+          curl -s -X POST "https://asia-east1-egret-project-hub.cloudfunctions.net/checkTelegramSchedule" \
             -H "Content-Type: application/json"
