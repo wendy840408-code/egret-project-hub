@@ -1,18 +1,54 @@
 name: EGRET Daily Telegram Report
- 
+
 on:
   schedule:
     - cron: '30 0 * * 1-5'
   workflow_dispatch:
- 
+
 jobs:
   send-report:
     runs-on: ubuntu-latest
     steps:
       - name: Send EGRET Daily Report
         run: |
-          curl -s -X POST \
-            "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-            -d chat_id=${{ secrets.TELEGRAM_CHAT_ID }} \
-            --data-urlencode "text=EGRET Daily Report - $(TZ='Asia/Taipei' date '+%m/%d') - Please check your projects today."
- 
+          python3 - << 'PYEOF'
+          import urllib.request
+          import urllib.parse
+          import datetime
+
+          tz_offset = datetime.timezone(datetime.timedelta(hours=8))
+          today = datetime.datetime.now(tz_offset).strftime('%m/%d %A')
+
+          message = f"""📊 EGRET Daily Report｜{today}
+
+🔔 每日追蹤提醒已啟動
+請開啟系統查看今日優先案件
+
+👉 https://wendy840408-code.github.io/egret-project-hub/
+
+📌 今日請確認：
+• 昨日聯絡紀錄
+• 今日預計追蹤客戶
+• 報價／樣品進度
+
+— EGRET Project Hub"""
+
+          import os
+          token = os.environ['BOT_TOKEN']
+          chat_id = os.environ['CHAT_ID']
+
+          data = urllib.parse.urlencode({
+              'chat_id': chat_id,
+              'text': message
+          }).encode()
+
+          req = urllib.request.Request(
+              f'https://api.telegram.org/bot{token}/sendMessage',
+              data=data
+          )
+          resp = urllib.request.urlopen(req)
+          print(resp.read().decode())
+          PYEOF
+        env:
+          BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
