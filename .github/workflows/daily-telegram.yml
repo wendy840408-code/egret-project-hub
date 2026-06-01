@@ -1,28 +1,27 @@
-name: EGRET ERP - Telegram Daily Trigger
+name: EGRET Daily Telegram Report
 
 on:
   schedule:
-    # 每天台灣時間早上 10:00 自動執行 (UTC 02:00)
-    - cron: '0 2 * * *'
-  
+    # UTC 00:30 = 台灣 08:30
+    - cron: '30 0 * * *'
+
   workflow_dispatch:
 
 jobs:
-  send_telegram:
+  send-report:
     runs-on: ubuntu-latest
-    steps:
-      # 第一步：讓 GitHub 去把妳專案裡的程式碼檔案下載下來看
-      - name: Checkout repository code
-        uses: actions/checkout@v4
 
-      # 第二步：用 Linux 的文字搜尋指令（grep），直接去妳的 HTML 裡面把「催單內容」撈出來
-      - name: Extract message from HTML and Send
+    steps:
+      - name: Send Telegram Message
         run: |
-          # 這裡會去抓妳 HTML 裡面寫好的那段催單範本文字
-          # (我們預設妳 HTML 裡有一個變數或文字寫著催單內容)
-          MSG_TEXT="🌟 EGRET ERP 每日提醒：請登入系統確認今日未付款訂單。🚀"
-          
+          MESSAGE="📊 EGRET Daily Report
+
+✅ GitHub Actions 正常
+✅ Telegram Bot 正常
+✅ 自動排程正常
+
+$(date)"
+
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-            -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
-            -d "text=${MSG_TEXT}" \
-            -d "parse_mode=Markdown"
+          -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+          -d text="$MESSAGE"
