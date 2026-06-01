@@ -2,16 +2,38 @@ name: EGRET Daily Telegram Report
 
 on:
   schedule:
-    - cron: '30 0 * * *'
-  workflow_dispatch:
+    - cron: '30 0 * * 1-5'   # 台灣時間 週一至週五 早上 08:30
+  workflow_dispatch:           # 手動也可以觸發測試
 
 jobs:
   send-report:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Send Telegram Message
+      - name: 取得今天日期（台灣時間）
+        id: date
+        run: echo "today=$(TZ='Asia/Taipei' date '+%m/%d %A')" >> $GITHUB_OUTPUT
+
+      - name: 發送 EGRET 每日提醒到 Telegram
         run: |
-          curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-          -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
-          -d "text=📊 EGRET Daily Report - GitHub Actions 測試成功"
+          MESSAGE="📊 EGRET Daily Report｜${{ steps.date.outputs.today }}
+
+🔔 每日追蹤提醒已啟動
+請開啟系統查看今日優先案件：
+
+👉 https://wendy840408-code.github.io/egret-project-hub/
+
+📌 記得更新以下項目：
+• 昨日聯絡紀錄
+• 今日預計追蹤客戶
+• 報價/樣品進度
+
+— EGRET Project Hub"
+
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"chat_id\": \"${{ secrets.TELEGRAM_CHAT_ID }}\",
+              \"text\": \"$MESSAGE\",
+              \"parse_mode\": \"HTML\"
+            }"
